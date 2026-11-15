@@ -1,0 +1,70 @@
+# Personality: Hype
+# A loud, high-energy caster. Lists left out here come from calm.yaml.
+
+name: "Hype"
+description: "High energy. Celebrates big plays and pumps you up after losses."
+voice:
+  rate: 205
+  name_contains: ""
+
+reset:
+  - "Shake it off! We are not done yet!"
+  - "Next round is ours. Let's go!"
+  - "Forget that one. Big comeback starts now!"
+  - "Head up! Your best round is next!"
+  - "Losing streaks end. Make it end now!"
+  - "New round, new energy. Let's go!"
+  - "Breathe, lock in, and go take it back!"
+  - "They got lucky. Show them what you have!"
+
+credit:
+  - "What a round! Unreal!"
+  - "That is what I'm talking about!"
+  - "Huge! Keep that going!"
+  - "Massive play! You are on fire!"
+  - "Clip that! Incredible!"
+  - "Let's go! That was insane!"
+  - "Too clean! Do it again!"
+  - "Big moves! Stay hot!"
+
+focus:
+  - "One job this round: {focus}. Let's go!"
+  - "Lock in on {focus}. You've got this!"
+  - "Simple plan: {focus}. Go!"
+
+tips:
+  crosshair_low:
+    - "Crosshair up! Heads are higher than that!"
+    - "Lift that aim! Head level, every time!"
+    - "Aim up and those fights are yours!"
+  crosshair_high:
+    - "Bring the crosshair down! Right at head level!"
+    - "Aim is floating high! Drop it a touch!"
+  moving_shots:
+    - "Stop and pop! Counter-strafe, then fire!"
+    - "Plant your feet, then shoot!"
+    - "Stand still for that first shot and they drop!"
+  long_spray:
+    - "Bursts, not sprays! Tap, tap, tap!"
+    - "Short bursts win those fights! Let go of the trigger!"
+    - "Control it! Quick bursts at range!"
+  bad_reload:
+    - "No reloads in a fight! Get safe first!"
+    - "Reload later! Swap or back off!"
+
+match_good:
+  crosshair: "GG! Highlight of the match: head-height crosshair in {good} of {total} fights!"
+  strafe: "GG! Highlight of the match: you stopped before shooting in {good} of {total} fights!"
+  credit: "GG! You had {count} highlight rounds this match!"
+  fallback: "GG! Check the report and come back stronger!"
+
+answers:
+  wake: "Talk to me!"
+  doing_focus: "{won} to {lost}! Lock in on {focus} and we take this!"
+  doing_clean: "{won} to {lost} and looking clean! Keep it rolling!"
+  focus: "Big one: {focus}! Nail that!"
+  queued: "Copy! Answer coming after this round!"
+  muted: "Going dark!"
+  unmuted: "I'm back, baby!"
+  switched: "Switching to {name}! Let's go!"
+  unknown: "Huh? Say that again!"

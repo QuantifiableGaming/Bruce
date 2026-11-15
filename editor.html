@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Valorant Coach - Region Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #11141b; --panel: #1a1f29; --panel2: #222836; --line: #2e3647;
+    --text: #e8ebf1; --muted: #9aa3b5; --accent: #ff4655; --ok: #3ddc84; --warn: #ffd166;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: .3px; }
+  header .mode { font-size: 12px; color: var(--muted); }
+  header .spacer { flex: 1; }
+  .dirty { color: var(--warn); font-size: 12px; display: none; }
+  .dirty.on { display: inline; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 0; height: calc(100vh - 49px); }
+  #stageWrap { overflow: auto; padding: 16px; display: flex; align-items: flex-start; justify-content: center; }
+  #stage { position: relative; width: 100%; max-width: 1600px; user-select: none; touch-action: none; }
+  #shot { display: block; width: 100%; border-radius: 6px; background: #000; }
+  #empty { padding: 60px 20px; text-align: center; color: var(--muted); border: 2px dashed var(--line); border-radius: 10px; }
+  #empty b { color: var(--text); }
+  .cross { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; transform: translate(-50%, -50%); pointer-events: none; }
+  .cross::before, .cross::after { content: ""; position: absolute; background: #ffe600; }
+  .cross::before { left: 12px; top: 0; width: 2px; height: 26px; }
+  .cross::after { top: 12px; left: 0; height: 2px; width: 26px; }
+  .box { position: absolute; border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); cursor: move; }
+  .box[data-k="gun_ignore"] { border-style: dashed; background: repeating-linear-gradient(45deg, rgba(184,192,204,.10) 0 8px, transparent 8px 16px); }
+  .box.sel { border-width: 3px; box-shadow: 0 0 0 2px rgba(0,0,0,.6), 0 0 14px var(--c); z-index: 5; }
+  .box .tag { position: absolute; left: -2px; bottom: 100%; margin-bottom: 14px; background: var(--c); color: #111; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 3px 3px 0 0; white-space: nowrap; }
+  .box.below .tag { bottom: auto; top: 100%; margin: 14px 0 0; border-radius: 0 0 3px 3px; }
+  /* Handles sit outside the box, so they never cover the HUD item. */
+  .h { position: absolute; width: 10px; height: 10px; background: var(--c); border: 2px solid #111; border-radius: 2px; }
+  .h.nw { left: -13px; top: -13px; cursor: nwse-resize; } .h.se { right: -13px; bottom: -13px; cursor: nwse-resize; }
+  .h.ne { right: -13px; top: -13px; cursor: nesw-resize; } .h.sw { left: -13px; bottom: -13px; cursor: nesw-resize; }
+  .h.n { left: calc(50% - 5px); top: -13px; cursor: ns-resize; } .h.s { left: calc(50% - 5px); bottom: -13px; cursor: ns-resize; }
+  .h.w { top: calc(50% - 5px); left: -13px; cursor: ew-resize; } .h.e { top: calc(50% - 5px); right: -13px; cursor: ew-resize; }
+  .box:not(.sel) .h { display: none; }
+  .box.small .h.n, .box.small .h.s, .box.small .h.e, .box.small .h.w { display: none; }
+  aside { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+  .card { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 0 0 8px; }
+  .regions { display: grid; gap: 6px; }
+  .rbtn { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: var(--text); cursor: pointer; text-align: left; font: inherit; }
+  .rbtn .dot { width: 12px; height: 12px; border-radius: 3px; background: var(--c); flex: none; }
+  .rbtn.sel { border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+  .rbtn small { color: var(--muted); margin-left: auto; font-size: 11px; }
+  #help { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  #zoom { width: 100%; height: 150px; background: #000; border-radius: 6px; display: block; image-rendering: pixelated; }
+  .nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+  .nums label { font-size: 11px; color: var(--muted); display: grid; gap: 2px; }
+  .nums input { width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--text); border-radius: 4px; padding: 4px; font: 12px ui-monospace, Consolas, monospace; }
+  .px { font: 11px ui-monospace, Consolas, monospace; color: var(--muted); margin-top: 6px; }
+  .btns { display: grid; gap: 8px; }
+  button.b { font: inherit; border-radius: 6px; padding: 9px 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
+  button.b:hover { border-color: #4a5570; }
+  button.b.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.b:disabled { opacity: .45; cursor: not-allowed; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row > * { flex: 1; }
+  select { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: inherit; }
+  #results { font: 12px ui-monospace, Consolas, monospace; display: grid; gap: 4px; }
+  #results .r { display: flex; justify-content: space-between; gap: 8px; }
+  #results .v { color: var(--ok); text-align: right; word-break: break-word; }
+  #results .v.bad { color: var(--warn); }
+  #status { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: #000c; border: 1px solid var(--line); padding: 8px 16px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 80vw; text-align: center; }
+  #status.on { opacity: 1; }
+  #countdown { position: fixed; inset: 0; background: #000d; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 10px; z-index: 50; }
+  #countdown.on { display: flex; }
+  #countdown .n { font-size: 96px; font-weight: 700; color: var(--accent); }
+  .keys { color: var(--muted); font-size: 12px; margin: 0; padding-left: 16px; }
+  .keys kbd { background: var(--bg); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; font-size: 11px; }
+  input[type=file] { display: none; }
+  #maskImg { position: absolute; pointer-events: none; image-rendering: pixelated; z-index: 4; }
+  .note { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+  label.chk { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Valorant Coach &middot; Region Editor</h1>
+  <span class="mode" id="mode"></span>
+  <span class="spacer"></span>
+  <span class="dirty" id="dirty">Unsaved changes</span>
+</header>
+<main>
+  <div id="stageWrap">
+    <div id="stage">
+      <div id="empty">
+        <p><b>No screenshot yet.</b></p>
+        <p>Click <b>Take screenshot</b> and switch to Valorant, or click <b>Load picture</b> to use a screenshot file.</p>
+      </div>
+    </div>
+  </div>
+  <aside>
+    <div class="card">
+      <h2>1 &middot; Pick a box</h2>
+      <div class="regions" id="regionList"></div>
+      <p id="help"></p>
+    </div>
+    <div class="card">
+      <h2>Enemy highlight colour</h2>
+      <select id="enemyColor" style="width:100%">
+        <option value="red">Red (Valorant default)</option>
+        <option value="yellow">Yellow (Deuteranopia)</option>
+        <option value="purple">Purple (Tritanopia)</option>
+      </select>
+      <p class="note">Must match Valorant: Settings &gt; General &gt; Enemy Highlight Color. Yellow and purple give fewer false alarms than red.</p>
+      <h2 style="margin-top:12px">Gun side</h2>
+      <select id="gunSide" style="width:100%">
+        <option value="right">Right hand (Valorant default)</option>
+        <option value="left">Left hand</option>
+      </select>
+      <p class="note">Must match Valorant: Settings &gt; General &gt; Show Weapon. Changing it moves the Gun area box to that side.</p>
+    </div>
+    <div class="card">
+      <h2>2 &middot; Zoomed view</h2>
+      <canvas id="zoom" width="600" height="300"></canvas>
+      <div class="nums" id="nums"></div>
+      <div class="px" id="px"></div>
+    </div>
+    <div class="card">
+      <h2>3 &middot; Check and save</h2>
+      <div class="btns">
+        <button class="b" id="testBtn">Test reading</button>
+        <div id="results"></div>
+        <label class="chk" id="maskRow" style="display:none"><input type="checkbox" id="maskChk" checked> Show enemy-colour pixels in magenta</label>
+        <button class="b primary" id="saveBtn">Save to config</button>
+        <button class="b" id="resetBtn">Undo unsaved changes</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Screenshot</h2>
+      <div class="btns">
+        <div class="row">
+          <select id="delay" title="Time to switch to Valorant">
+            <option value="5">in 5 s</option>
+            <option value="10" selected>in 10 s</option>
+            <option value="15">in 15 s</option>
+          </select>
+          <button class="b" id="captureBtn">Take screenshot</button>
+        </div>
+        <button class="b" id="loadBtn">Load picture&hellip;</button>
+        <input type="file" id="file" accept="image/*">
+      </div>
+    </div>
+    <div class="card">
+      <h2>Keys</h2>
+      <ul class="keys">
+        <li>Drag a box to move it. Drag a handle to resize it.</li>
+        <li><kbd>Arrows</kbd> move 1 pixel. <kbd>Shift</kbd>+<kbd>Arrows</kbd> move 10 pixels.</li>
+        <li><kbd>Alt</kbd>+<kbd>Arrows</kbd> change the size.</li>
+        <li><kbd>1</kbd>&ndash;<kbd>5</kbd> pick a box. <kbd>Ctrl</kbd>+<kbd>S</kbd> saves.</li>
+      </ul>
+    </div>
+    <button class="b" id="doneBtn">Done &ndash; close the editor</button>
+  </aside>
+</main>
+<div id="status"></div>
+<div id="countdown"><div class="n" id="cdNum">10</div><div>Switch to Valorant now. Stay in the game.</div></div>
+
+<script>
+const INFO = {
+  ammo:         { label: "Ammo",          color: "#ff4655", help: "Cover only the big magazine number at the bottom of the screen. Do not include the reserve ammo." },
+  health:       { label: "Health",        color: "#3ddc84", help: "Cover only the health number at the bottom left of the centre HUD." },
+  banner:       { label: "Round banner",  color: "#ffd166", help: "Cover the area where ROUND WON and ROUND LOST appear. Make it a bit larger than the text." },
+  enemy_search: { label: "Enemy search",  color: "#4cc9f0", help: "The area around your crosshair where the coach looks for enemy outlines. Keep the yellow crosshair near its centre." },
+  gun_ignore:   { label: "Gun area (ignored)", color: "#b8c0cc", help: "Cover your own gun and arms. The coach ignores enemy colours inside this box, so a coloured gun skin does not look like an enemy." },
+};
+const KEYS = Object.keys(INFO);
+const server = location.protocol.startsWith("http");
+let regions = {}, saved = {}, selected = "ammo", img = null, natW = 0, natH = 0, savedColor = "red", savedSide = "right";
+
+const $ = (id) => document.getElementById(id);
+const stage = $("stage");
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const r4 = (v) => Math.round(v * 10000) / 10000;
+
+function status(msg, ms = 2600) {
+  const s = $("status"); s.textContent = msg; s.classList.add("on");
+  clearTimeout(status.t); status.t = setTimeout(() => s.classList.remove("on"), ms);
+}
+function setDirty() {
+  const dirty = JSON.stringify(regions) !== JSON.stringify(saved) || $("enemyColor").value !== savedColor ||
+    $("gunSide").value !== savedSide;
+  $("dirty").classList.toggle("on", dirty);
+  return dirty;
+}
+
+// ---------- region list and boxes ----------
+function buildList() {
+  const list = $("regionList"); list.innerHTML = "";
+  KEYS.forEach((k, i) => {
+    const b = document.createElement("button");
+    b.className = "rbtn" + (k === selected ? " sel" : "");
+    b.style.setProperty("--c", INFO[k].color);
+    b.innerHTML = `<span class="dot"></span>${INFO[k].label}<small>${i + 1}</small>`;
+    b.onclick = () => select(k);
+    list.appendChild(b);
+  });
+  $("help").textContent = INFO[selected].help;
+}
+function select(k) { selected = k; buildList(); renderBoxes(); renderSide(); }
+
+function renderBoxes() {
+  stage.querySelectorAll(".box").forEach((e) => e.remove());
+  if (!img) return;
+  KEYS.forEach((k) => {
+    const [x, y, w, h] = regions[k];
+    const d = document.createElement("div");
+    const sw = stage.clientWidth, sh = stage.clientHeight;
+    const small = w * sw < 70 || h * sh < 50;
+    d.className = "box" + (k === selected ? " sel" : "") + (y < 0.05 ? " below" : "") + (small ? " small" : "");
+    d.style.cssText = `left:${x * 100}%;top:${y * 100}%;width:${w * 100}%;height:${h * 100}%;--c:${INFO[k].color}`;
+    d.dataset.k = k;
+    d.innerHTML = `<span class="tag">${INFO[k].label}</span>` +
+      ["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((p) => `<span class="h ${p}" data-h="${p}"></span>`).join("");
+    d.addEventListener("pointerdown", startDrag);
+    stage.appendChild(d);
+  });
+}
+
+function renderSide() {
+  const [x, y, w, h] = regions[selected] || [0, 0, 0, 0];
+  const nums = $("nums");
+  if (!nums.children.length) {
+    ["Left", "Top", "Width", "Height"].forEach((lab, i) => {
+      const l = document.createElement("label");
+      l.innerHTML = `${lab}<input type="number" step="0.001" min="0" max="1" data-i="${i}">`;
+      l.querySelector("input").addEventListener("change", (e) => {
+        const v = regions[selected].slice(); v[+e.target.dataset.i] = parseFloat(e.target.value) || 0;
+        setRegion(selected, v);
+      });
+      nums.appendChild(l);
+    });
+  }
+  nums.querySelectorAll("input").forEach((inp, i) => { if (document.activeElement !== inp) inp.value = r4([x, y, w, h][i]); });
+  $("px").textContent = natW ? `${Math.round(x * natW)}, ${Math.round(y * natH)}  ·  ${Math.round(w * natW)} × ${Math.round(h * natH)} px  (screen ${natW} × ${natH})` : "";
+  drawZoom();
+}
+
+function drawZoom() {
+  const c = $("zoom"), ctx = c.getContext("2d");
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, c.width, c.height);
+  if (!img) return;
+  const [x, y, w, h] = regions[selected];
+  const pad = selected === "enemy_search" ? 0.1 : 0.6;
+  let sx = (x - w * pad) * natW, sy = (y - h * pad) * natH;
+  let sw = w * (1 + 2 * pad) * natW, sh = h * (1 + 2 * pad) * natH;
+  const aspect = c.width / c.height;            // Keep the picture shape.
+  if (sw / sh > aspect) { const nh = sw / aspect; sy -= (nh - sh) / 2; sh = nh; }
+  else { const nw = sh * aspect; sx -= (nw - sw) / 2; sw = nw; }
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  const k = c.width / sw;
+  ctx.strokeStyle = INFO[selected].color; ctx.lineWidth = 3;
+  ctx.strokeRect((x * natW - sx) * k, (y * natH - sy) * k, w * natW * k, h * natH * k);
+}
+
+function setRegion(k, v) {
+  let [x, y, w, h] = v;
+  const min = 0.004;
+  w = clamp(w, min, 1); h = clamp(h, min, 1);
+  x = clamp(x, 0, 1 - w); y = clamp(y, 0, 1 - h);
+  regions[k] = [r4(x), r4(y), r4(w), r4(h)];
+  if (k === "enemy_search" && lastMask) showMask(null);  // The old pixel picture no longer fits.
+  renderBoxes(); renderSide(); setDirty();
+}
+
+// ---------- dragging ----------
+function startDrag(e) {
+  e.preventDefault(); e.stopPropagation();
+  const k = e.currentTarget.dataset.k;
+  if (k !== selected) select(k);
+  const handle = e.target.dataset.h || null;
+  const rect = stage.getBoundingClientRect();
+  const start = regions[k].slice(), px = e.clientX, py = e.clientY;
+  const move = (ev) => {
+    const dx = (ev.clientX - px) / rect.width, dy = (ev.clientY - py) / rect.height;
+    let [x, y, w, h] = start;
+    if (!handle) { x += dx; y += dy; }
+    else {
+      if (handle.includes("w")) { x = clamp(start[0] + dx, 0, start[0] + start[2] - 0.004); w = start[0] + start[2] - x; }
+      if (handle.includes("e")) { w = start[2] + dx; }
+      if (handle.includes("n")) { y = clamp(start[1] + dy, 0, start[1] + start[3] - 0.004); h = start[1] + start[3] - y; }
+      if (handle.includes("s")) { h = start[3] + dy; }
+    }
+    setRegion(k, [x, y, w, h]);
+  };
+  const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+  window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); save(); return; }
+  if (/^[1-5]$/.test(e.key)) { select(KEYS[+e.key - 1]); return; }
+  const dirs = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  if (!dirs[e.key] || !img) return;
+  e.preventDefault();
+  const step = e.shiftKey ? 10 : 1, [dx, dy] = dirs[e.key];
+  let [x, y, w, h] = regions[selected];
+  if (e.altKey) { w += dx * step / natW; h += dy * step / natH; }
+  else { x += dx * step / natW; y += dy * step / natH; }
+  setRegion(selected, [x, y, w, h]);
+});
+
+// ---------- image ----------
+function showImage(src) {
+  return new Promise((resolve, reject) => {
+    const im = new Image();
+    im.onload = () => {
+      img = im; natW = im.naturalWidth; natH = im.naturalHeight;
+      stage.innerHTML = ""; im.id = "shot"; im.draggable = false; stage.appendChild(im);
+      const cross = document.createElement("div"); cross.className = "cross"; stage.appendChild(cross);
+      renderBoxes(); renderSide(); resolve();
+    };
+    im.onerror = reject;
+    im.src = src;
+  });
+}
+
+$("loadBtn").onclick = () => $("file").click();
+$("file").onchange = async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const data = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(f); });
+  if (server) {
+    const r = await api("/api/upload", { data });
+    if (r) { await showImage("/image?t=" + Date.now()); status("Picture loaded."); }
+  } else {
+    await showImage(data); status("Picture loaded.");
+  }
+  e.target.value = "";
+};
+
+$("captureBtn").onclick = async () => {
+  if (!server) { status("Taking a screenshot needs the editor to run from the Setup menu."); return; }
+  const delay = +$("delay").value;
+  const cd = $("countdown"); cd.classList.add("on");
+  let n = delay; $("cdNum").textContent = n;
+  const timer = setInterval(() => { n = Math.max(0, n - 1); $("cdNum").textContent = n; }, 1000);
+  const r = await api("/api/capture", { delay });
+  clearInterval(timer); cd.classList.remove("on");
+  if (r) { await showImage("/image?t=" + Date.now()); status(`Screenshot taken (${r.width} × ${r.height}).`); }
+};
+
+// ---------- server calls ----------
+async function api(path, body) {
+  try {
+    const res = await fetch(path, { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+    const data = await res.json();
+    if (!res.ok) { status(data.error || "Something went wrong.", 5000); return null; }
+    return data;
+  } catch (err) {
+    status("The editor helper is not running. Start it from the Setup menu.", 5000);
+    return null;
+  }
+}
+
+function yamlBlock() {
+  return `# Also set enemy_highlight: color: ${$("enemyColor").value} and gun_side: ${$("gunSide").value}\n` + "regions:\n" + KEYS.map((k) => `  ${k}: [${regions[k].map((v) => v.toFixed(4)).join(", ")}]`).join("\n") + "\n";
+}
+
+async function save() {
+  if (!server) {
+    try { await navigator.clipboard.writeText(yamlBlock()); status("Copied. Paste it over the regions section in config.yaml.", 5000); }
+    catch { prompt("Copy this into config.yaml (replace the regions section):", yamlBlock()); }
+    return;
+  }
+  const r = await api("/api/regions", { regions, enemy_color: $("enemyColor").value, gun_side: $("gunSide").value });
+  if (r) { saved = JSON.parse(JSON.stringify(regions)); savedColor = $("enemyColor").value; savedSide = $("gunSide").value; setDirty(); status("Saved to config.yaml."); }
+}
+$("saveBtn").onclick = save;
+
+$("testBtn").onclick = async () => {
+  const out = $("results");
+  if (!server) { out.innerHTML = '<div class="r"><span>Test reading needs the editor to run from the Setup menu.</span></div>'; return; }
+  if (!img) { status("Take or load a screenshot first."); return; }
+  out.innerHTML = '<div class="r"><span>Reading&hellip;</span></div>';
+  const r = await api("/api/test", { regions, enemy_color: $("enemyColor").value });
+  if (!r) { out.innerHTML = ""; return; }
+  const row = (k, v, good) => `<div class="r"><span>${k}</span><span class="v ${good ? "" : "bad"}">${v}</span></div>`;
+  let html = "";
+  if (r.ocr_error) html += row("Text", "not available - Tesseract is missing", false);
+  else {
+    html += row("Ammo", r.ammo ?? "not read", r.ammo != null);
+    html += row("Health", r.health ?? "not read", r.health != null);
+    html += row("Banner", r.banner || "no text (normal mid-round)", true);
+  }
+  const e = r.enemy;
+  let enemyText;
+  if (!e.visible) enemyText = `none seen (${e.pixels} pixels of ${r.enemy_color})`;
+  else if (e.head_offset == null) enemyText = `${r.enemy_color} pixels found (${e.pixels}), no outline shape`;
+  else enemyText = `outline found, head ${Math.abs(e.head_offset)} px ${e.head_offset > 0 ? "above" : "below"} the crosshair`;
+  html += row("Enemy", enemyText, true);
+  if (e.visible) html += `<p class="note">If there is no enemy near your crosshair in this screenshot, something else on screen is ${r.enemy_color}. Look at the magenta pixels. A different Enemy Highlight Color in Valorant (yellow or purple) often fixes this.</p>`;
+  if (e.ignored) html += `<p class="note">${e.ignored} matching pixels were inside the Gun area and were ignored.</p>`;
+  if (r.ocr_error) html += `<p class="note">The coach needs Tesseract to read numbers.</p><button class="b primary" id="tessBtn" style="width:100%">Install Tesseract</button><div id="tessLog" class="note"></div>`;
+  out.innerHTML = html;
+  if (r.ocr_error) $("tessBtn").onclick = installTesseract;
+  showMask(r.enemy_mask);
+};
+
+async function installTesseract() {
+  const btn = $("tessBtn"), log = $("tessLog");
+  btn.disabled = true; btn.textContent = "Installing... follow any Windows prompts";
+  await api("/api/install_tesseract", {});
+  const timer = setInterval(async () => {
+    const st = await api("/api/tesseract");
+    if (!st) return;
+    log.innerHTML = (st.log || []).slice(-4).map((l) => `<div>${l.replace(/</g, "&lt;")}</div>`).join("");
+    if (!st.running) {
+      clearInterval(timer);
+      if (st.path) { btn.textContent = "Tesseract installed"; status("Tesseract installed. Click Test reading again.", 5000); }
+      else { btn.disabled = false; btn.textContent = "Try again"; }
+    }
+  }, 1500);
+}
+
+let lastMask = null;
+function showMask(src) {
+  lastMask = src || null;
+  const old = $("maskImg"); if (old) old.remove();
+  $("maskRow").style.display = lastMask ? "flex" : "none";
+  if (!lastMask || !$("maskChk").checked || !img) return;
+  const [x, y, w, h] = regions.enemy_search;
+  const m = document.createElement("img");
+  m.id = "maskImg"; m.src = lastMask;
+  m.style.cssText = `left:${x * 100}%;top:${y * 100}%;width:${w * 100}%;height:${h * 100}%`;
+  stage.appendChild(m);
+}
+$("maskChk").onchange = () => showMask(lastMask);
+// Put the Gun area box on the chosen side. It keeps its size.
+function gunBoxSide() { const [x, , w] = regions.gun_ignore; return x + w / 2 < 0.5 ? "left" : "right"; }
+$("gunSide").onchange = () => {
+  const side = $("gunSide").value;
+  if (regions.gun_ignore && gunBoxSide() !== side) {
+    const [x, y, w, h] = regions.gun_ignore;
+    setRegion("gun_ignore", [1 - x - w, y, w, h]);
+  }
+  select("gun_ignore"); setDirty();
+  status(`Gun area moved to the ${side}. Check that it covers your gun, then save.`);
+};
+$("enemyColor").onchange = () => { setDirty(); showMask(null); status("Colour changed. Click Test reading to check it."); };
+
+$("resetBtn").onclick = () => { regions = JSON.parse(JSON.stringify(saved)); renderBoxes(); renderSide(); setDirty(); status("Changes undone."); };
+
+$("doneBtn").onclick = async () => {
+  if (setDirty() && !confirm("You have unsaved changes. Close without saving?")) return;
+  if (server) await api("/api/shutdown", {});
+  document.body.innerHTML = '<div style="padding:60px;text-align:center;color:#9aa3b5"><h2 style="color:#e8ebf1">Editor closed</h2><p>You can close this tab. Go back to the Setup window.</p></div>';
+};
+
+window.addEventListener("beforeunload", (e) => { if (setDirty()) { e.preventDefault(); e.returnValue = ""; } });
+
+// ---------- start ----------
+(async function init() {
+  if (window.self !== window.top) {
+    // Inside the control panel: the panel has its own Close button.
+    $("doneBtn").style.display = "none";
+    document.querySelector("header h1").textContent = "Screen regions";
+  }
+  $("mode").textContent = server ? "Connected - Save writes to config.yaml" : "Offline - Save copies the settings for you to paste";
+  if (!server) {
+    $("captureBtn").disabled = true; $("testBtn").disabled = true;
+    $("saveBtn").textContent = "Copy settings for config.yaml";
+    regions = { ammo: [0.555, 0.925, 0.04, 0.045], health: [0.325, 0.925, 0.04, 0.045], banner: [0.3, 0.15, 0.4, 0.15], enemy_search: [0.3, 0.25, 0.4, 0.5], gun_ignore: [0.58, 0.5, 0.42, 0.5] };
+  } else {
+    const st = await api("/api/state");
+    if (!st) return;
+    regions = st.regions;
+    if (!regions.gun_ignore) regions.gun_ignore = [0.58, 0.5, 0.42, 0.5];
+    $("enemyColor").value = st.enemy_color || "red";
+    savedColor = $("enemyColor").value;
+    $("gunSide").value = st.gun_side || "right";
+    savedSide = $("gunSide").value;
+    if (st.has_image) await showImage("/image?t=" + Date.now());
+  }
+  saved = JSON.parse(JSON.stringify(regions));
+  buildList(); renderSide(); setDirty();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+# Valorant coach settings.
+# Screen regions use fractions of the screen: [x, y, width, height].
+# The default values are estimates for a 16:9 screen with the default HUD scale.
+# Run "python main.py calibrate" and change these values until each box covers its HUD item.
+
+monitor: 1            # 1 is the main monitor.
+fps: 30               # Screen capture rate.
+hud_rate_hz: 10       # How often the program reads ammo and health.
+banner_rate_hz: 2     # How often the program reads the round result banner.
+tesseract_cmd: ""     # Full path to tesseract.exe if it is not on PATH.
+                      # Example: "C:/Program Files/Tesseract-OCR/tesseract.exe"
+
+regions:
+  ammo: [0.555, 0.925, 0.040, 0.045]         # Magazine ammo number only. Do not include reserve ammo.
+  health: [0.325, 0.925, 0.040, 0.045]       # Health number.
+  banner: [0.300, 0.150, 0.400, 0.150]       # "ROUND WON" / "ROUND LOST" text.
+  enemy_search: [0.300, 0.250, 0.400, 0.500] # Area around the crosshair where the program looks for enemies.
+  gun_ignore: [0.580, 0.500, 0.420, 0.500]   # Your own gun and arms. Enemy colours here are ignored.
+
+gun_side: right       # right or left. Matches Valorant: Settings > General > Show Weapon (Left/Right hand).
+                      # The region editor flips the gun_ignore box when you change this.
+
+enemy_highlight:
+  color: red          # red, yellow or purple. Must match Settings > General > Enemy Highlight Color.
+  min_pixels: 40      # Highlight pixels (at 1080p) needed to count as an enemy.
+  min_height_px: 25   # Smallest enemy outline height (at 1080p) used for the crosshair check.
+
+banner_confirm_reads: 2   # A round result must show in this many banner reads in a row.
+banner_needs_hud_s: 20    # Results count only if ammo or health was read in the last 20 seconds (so menus do not count).
+
+banner_keywords:
+  round_won: ["WON", "WIN"]
+  round_lost: ["LOST", "LOSS"]
+  credit: ["CLUTCH", "ACE", "FLAWLESS", "THRIFTY"]
+  match_end: ["VICTORY", "DEFEAT", "DRAW"]
+
+checks:
+  crosshair:
+    tolerance_px_at_1080: 18   # A head this close to the crosshair (vertically) counts as good.
+    min_samples: 2             # Fights needed in a round before the check gives a tip.
+  moving_shots:
+    motion_threshold: 0.8      # Movement score above this value means you were moving. Tune with replay mode.
+    lookback_s: 0.12           # Time before the first shot that the program checks.
+    max_turn_px: 4.0           # Camera turns faster than this (flicks) are not judged.
+    min_bursts: 2
+    max_ratio: 0.4             # Tip when more than 40% of your bursts start while you move.
+  long_spray:
+    max_shots: 7               # Bursts longer than this count as a long spray. Raise it if you play SMGs.
+    burst_gap_s: 0.35          # A pause longer than this ends a burst.
+    min_count: 2
+  reload:
+    window_s: 2.5              # Damage this long before a reload finished means you reloaded in a fight.
+    min_ammo_left_ratio: 0.3   # Only count reloads where you still had at least 30% of a magazine.
+    min_count: 1
+
+coach:
+  personality: calm            # calm, hype, tough, mate, sassy or random. Run "python main.py personalities" to list them.
+  random_pool: []              # Personalities that "random" can pick. Empty means all of them.
+  voice_rate: null             # Words per minute. null uses the personality's speed.
+  voice_name: ""               # Part of a voice name. Empty uses the personality's voice setting.
+  loss_streak_reset: 3         # Lost rounds in a row before a reset message.
+  swing_lead: 4                # A lead this big that drops by 3 or more counts as a swing.
+  tip_cooldown_rounds: 2       # Rounds before the same tip can play again.
+  mute_hotkey: f8
+  screenshot_hotkey: f9        # Saves the screen during a match. Press it while the round banner shows.
+
+voice_control:
+  enabled: true                # Say the wake word, then a command. Needs the Vosk model (see README.md).
+  wake_word: bruce
+  wake_aliases: [bruise, brews, bruce's, bruces, bruise's, brus]  # Words the recognizer sometimes hears instead.
+  model_path: models/vosk-model-small-en-us-0.15   # The larger model models/vosk-model-en-us-0.22-lgraph hears words better.
+  mic_device: null             # null uses the Windows default mic. Run "python main.py mics" to list mics.
+  command_timeout_s: 5         # After "Bruce" on its own, how long the coach waits for a command.
+  answer_window_s: 35          # After a round ends, coaching questions get an answer for this long (buy phase).
+                               # Later questions wait until the round ends.
+
+ai:
+  provider: off                # off, claude or chatgpt. Use "AI coach setup" in the Setup menu.
+  claude_model: claude-haiku-5-5   # A fast Claude model. Change it if Anthropic renames its models.
+  chatgpt_model: gpt-5.4-mini      # A fast ChatGPT model. Change it if OpenAI renames its models.
+  timeout_s: 4                 # If the AI takes longer, the coach speaks the scripted line.
+  max_words: 25                # Longest AI line, in words.
+  use_for: [tips, mental, answers, match_end]   # Remove items to keep scripted lines for them.
+  secrets_file: secrets.yaml   # Your API keys. Keep this file private.

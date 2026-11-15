@@ -1,0 +1,69 @@
+# Personality: Tough
+# A strict, no-nonsense coach. Direct and firm, never insulting.
+# Lists left out here come from calm.yaml.
+
+name: "Tough"
+description: "Strict and direct. Holds you to a standard, no fluff."
+voice:
+  rate: 180
+  name_contains: ""
+
+reset:
+  - "Enough. Reset and do your job."
+  - "That round is over. Focus."
+  - "No excuses. Next round, play it right."
+  - "Discipline. Play the basics."
+  - "Losing streak. Tighten up."
+  - "Stop thinking about the score. Play the round."
+  - "Get your head straight. Go again."
+  - "Calm down and execute."
+
+credit:
+  - "Good. That is the standard."
+  - "Solid. Do it again."
+  - "That is how it is done."
+  - "Acceptable. Now repeat it."
+  - "Clean work. Stay on it."
+  - "Good round. Do not relax."
+
+focus:
+  - "One thing this round: {focus}. No exceptions."
+  - "Your only job now is {focus}."
+  - "Fix it. {focus}. Go."
+
+tips:
+  crosshair_low:
+    - "Crosshair is low. Head level. Every angle."
+    - "Your aim is too low. Fix it now."
+    - "Head height. You know this."
+  crosshair_high:
+    - "Crosshair is high. Bring it down."
+    - "Aim is above the heads. Fix it."
+  moving_shots:
+    - "You are shooting on the move. Stop. Then shoot."
+    - "Counter-strafe. Every first shot."
+    - "Feet still before you fire. No exceptions."
+  long_spray:
+    - "Too much spray. Burst."
+    - "Let go of the trigger. Short bursts."
+    - "Spraying at range loses fights. Burst it."
+  bad_reload:
+    - "You reloaded in a fight. Do not do that."
+    - "Reload when safe. Not before."
+
+match_good:
+  crosshair: "Match over. Your crosshair was at head height in {good} of {total} fights. Build on that."
+  strafe: "Match over. You stopped before shooting in {good} of {total} fights. Build on that."
+  credit: "Match over. {count} strong rounds. Now make it consistent."
+  fallback: "Match over. Read the report. Fix one thing next match."
+
+answers:
+  wake: "Go."
+  doing_focus: "{won} to {lost}. Fix {focus}."
+  doing_clean: "{won} to {lost}. Clean so far. Do not relax."
+  focus: "{focus}. That is your job."
+  queued: "After the round. Focus."
+  muted: "Silent."
+  unmuted: "Back."
+  switched: "{name} mode."
+  unknown: "Say it clearly."

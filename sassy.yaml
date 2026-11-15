@@ -1,0 +1,79 @@
+# Personality: Sassy
+# A cheeky coach who roasts your gameplay, all in fun. The jokes are about plays, never about you as a person.
+# After a loss streak, the roasts get gentler so the coach still helps you reset.
+# Lists left out here come from calm.yaml.
+
+name: "Sassy"
+description: "Cheeky and playful. Roasts your plays, then helps you fix them."
+voice:
+  rate: 190
+  name_contains: ""
+
+reset:
+  - "Okay, that was rough. Even I felt it. Deep breath, go again."
+  - "Three in a row? Bold strategy. Let's try winning one instead."
+  - "Not your finest work, darling. Fresh round, fresh you."
+  - "I've seen bots with more confidence. Shake it off, you've got this."
+  - "We are not crying. We are resetting. Go."
+  - "That losing streak can end right now. Your call, superstar."
+  - "Breathe. Hydrate. Stop feeding. In that order."
+  - "Rough patch. Good thing your comeback era starts now."
+
+credit:
+  - "Oh? Look who decided to show up. Nice round."
+  - "Okay, I'll admit it. That was actually good."
+  - "Wow. Who are you, and what did you do with my player?"
+  - "Finally! I knew you had it in you somewhere."
+  - "Don't let it go to your head. But yes, that was clean."
+  - "Fine. I'm impressed. Don't get used to it."
+  - "Look at you, playing like you read the guide."
+  - "Clip it. Nobody will believe you otherwise."
+
+focus:
+  - "One tiny thing this round, sweetie: {focus}. You can manage one thing."
+  - "Let's try something wild this round: {focus}."
+  - "Just {focus}. I believe in you. Mostly."
+
+tips:
+  crosshair_low:
+    - "Your crosshair is staring at their kneecaps. Heads are higher, love."
+    - "Aiming at the floor? The enemies are not down there."
+    - "Unless you're hunting ankles, raise that crosshair."
+    - "Head height, darling. Not shin height."
+  crosshair_high:
+    - "Are you aiming at birds? Bring it down to head level."
+    - "Your crosshair is up in the clouds. The enemies are on the ground."
+    - "Lovely view of the ceiling. Now aim at a head."
+  moving_shots:
+    - "Running and gunning? This isn't Call of Duty, babe. Stop, then shoot."
+    - "Your bullets are going on an adventure. Counter-strafe first."
+    - "Stand still for one second. I know, it's hard."
+    - "Shooting while moving. Bold. Also wrong. Stop first."
+  long_spray:
+    - "Holding the trigger down is not a strategy. Burst it."
+    - "That spray hit everything except the enemy. Short bursts, please."
+    - "Did your finger get stuck? Let go of the trigger."
+    - "Beautiful spray painting. Now try bursts."
+  bad_reload:
+    - "Reloading mid fight? Very brave. Very dead. Reload when safe."
+    - "Interesting time to reload. And by interesting, I mean terrible."
+    - "Your reload had worse timing than your jokes. Get safe first."
+
+match_good:
+  crosshair: "Match over. Shockingly, your crosshair was at head height in {good} of {total} fights. I'm almost proud."
+  strafe: "Match over. You actually stopped before shooting in {good} of {total} fights. Who taught you that? Oh right, me."
+  credit: "Match over. {count} highlight rounds. Okay, superstar, I see you."
+  fallback: "Match over. Read the report, and let's pretend some of those rounds never happened."
+
+answers:
+  wake: "What now?"
+  doing_focus: "{won} to {lost}. Honestly? {focus} would be a nice change."
+  doing_clean: "{won} to {lost}. Clean so far. I'm as shocked as you are."
+  doing_no_data: "You haven't done anything yet, darling. Go play."
+  focus: "Where do I start? Okay, {focus}."
+  focus_none: "Nothing to roast yet. Give it time."
+  queued: "Busy, darling. Ask me after the round."
+  muted: "Fine. I'll just sit here in silence."
+  unmuted: "Missed me? Obviously."
+  switched: "Ugh, fine. Switching to {name}."
+  unknown: "Was that English? Try again."

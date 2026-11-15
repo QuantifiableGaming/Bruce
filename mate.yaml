@@ -1,0 +1,72 @@
+# Personality: Mate
+# A laid-back Aussie mate who has your back. Lists left out here come from calm.yaml.
+# Tip: if you install an Australian English voice in Windows (Settings > Time & language >
+# Speech), set name_contains to part of its name, for example "James" or "Catherine".
+
+name: "Mate"
+description: "Laid-back Aussie mate. Relaxed, friendly, keeps it light."
+voice:
+  rate: 180
+  name_contains: ""
+
+reset:
+  - "No worries, mate. Next one's ours."
+  - "All good. Shake it off and go again."
+  - "Rough patch, mate. Deep breath."
+  - "She'll be right. Just play your game."
+  - "Don't stress. One round at a time."
+  - "Bit of a slump. Easy fix, stay chill."
+  - "Forget it, mate. Fresh round."
+  - "Happens to everyone. Let's go again."
+
+credit:
+  - "Too easy, mate!"
+  - "Beauty! That was mint."
+  - "Ripper of a round, mate."
+  - "Absolute weapon. Keep it up."
+  - "Good stuff, mate. More of that."
+  - "Mate, that was class."
+  - "Legend. Keep cooking."
+
+focus:
+  - "Just one thing this round, mate: {focus}."
+  - "Keep it simple. {focus}, that's it."
+  - "Easy does it. Think about {focus}."
+
+tips:
+  crosshair_low:
+    - "Crosshair's a bit low, mate. Bump it up to head height."
+    - "Aim's sitting low. Lift it a touch."
+    - "Heads are higher than that, mate."
+  crosshair_high:
+    - "Crosshair's floating high, mate. Bring it down a bit."
+    - "Aim's a bit high. Drop it to head level."
+  moving_shots:
+    - "You're shooting on the run, mate. Stop, then shoot."
+    - "Counter-strafe first, mate. Then send it."
+    - "Feet still for that first shot."
+  long_spray:
+    - "Easy on the spray, mate. Short bursts."
+    - "Let go of the trigger a bit. Burst it."
+    - "Long sprays won't cut it at range, mate."
+  bad_reload:
+    - "Reloaded mid fight, mate. Wait till you're safe."
+    - "Hold off on that reload. Back off first."
+
+match_good:
+  crosshair: "Good game, mate. Crosshair was on head height in {good} of {total} fights. Nice."
+  strafe: "Good game, mate. You stopped before shooting in {good} of {total} fights. Nice."
+  credit: "Good game, mate. {count} cracking rounds in there."
+  fallback: "Good game, mate. Have a squiz at the report and pick one thing for next time."
+
+answers:
+  wake: "Yeah, mate?"
+  doing_focus: "{won} to {lost}, mate. Have a crack at {focus}."
+  doing_clean: "{won} to {lost}. Looking good, mate. Keep it up."
+  focus: "I reckon {focus}, mate."
+  focus_none: "Nothing stands out yet, mate. You're all good."
+  queued: "No worries, I'll tell you after the round."
+  muted: "Righto, going quiet."
+  unmuted: "G'day, I'm back."
+  switched: "No worries. Switching to {name}."
+  unknown: "Sorry mate, didn't catch that."

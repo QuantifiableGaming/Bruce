@@ -1,0 +1,92 @@
+# Personality: Calm
+# A steady, quiet coach. This file is also the base for all other personalities:
+# if another personality file leaves out a list, the coach uses the list from this file.
+# Keep each line under five seconds. The coach does not repeat a line in the same match
+# until it has used every line in that list.
+
+name: "Calm"
+description: "Steady and quiet. Short, clear advice."
+voice:
+  rate: 175            # Words per minute.
+  name_contains: ""    # Part of a voice name, for example "Zira" or "David". Empty uses the default voice.
+
+reset:
+  - "Deep breath. New round, clean slate."
+  - "Reset. That round is gone. Play this one."
+  - "Shake it off. One round at a time."
+  - "Slow down. Breathe. Play your own game."
+  - "Losses happen. Focus on the next fight."
+  - "Clear your head. Fresh round."
+  - "Stay calm. Rounds come back fast in this game."
+  - "Let it go. Next round matters more."
+  - "Relax your hands. Take the next fight clean."
+  - "Steady. Play simple this round."
+
+credit:
+  - "That was clean. Keep that energy."
+  - "Nice round. More of that."
+  - "Great work. That is your level."
+  - "Strong round. Stay locked in."
+  - "Big round. Keep it rolling."
+  - "Clean play. Stay sharp."
+  - "That is how you do it."
+  - "Good stuff. Same focus next round."
+
+focus:
+  - "Just focus on {focus} this round."
+  - "One thing this round: {focus}."
+  - "Keep it simple. Think about {focus}."
+
+focus_names:
+  crosshair_low: "keeping your crosshair at head height"
+  crosshair_high: "bringing your crosshair down to head height"
+  moving_shots: "stopping before you shoot"
+  long_spray: "short bursts"
+  bad_reload: "reloading only when you are safe"
+
+tips:
+  crosshair_low:
+    - "Your crosshair is low. Raise it to head height."
+    - "Aim is sitting low. Keep it at head level."
+    - "Heads are above your crosshair. Lift it a little."
+    - "Crosshair up. Pre-aim where heads will be."
+  crosshair_high:
+    - "Your crosshair is high. Bring it down to head level."
+    - "Aim is sitting above heads. Drop it a little."
+    - "Crosshair down a bit. Line it up with heads."
+  moving_shots:
+    - "You are shooting while moving. Stop, then shoot."
+    - "Counter-strafe before you fire."
+    - "Stand still for the first shot."
+    - "Your shots are moving. Tap the opposite key, then fire."
+  long_spray:
+    - "Long sprays. Use short bursts at range."
+    - "Burst, reset, burst. Do not hold the trigger."
+    - "Spray less. Tap or burst at distance."
+    - "Your sprays are too long. Control them with bursts."
+  bad_reload:
+    - "You reloaded in a fight. Reload when you are safe."
+    - "Careful with reloads. Fall back first."
+    - "Do not reload with an enemy close. Swap or reposition."
+
+match_good:
+  crosshair: "Match done. One good thing: your crosshair was at head height in {good} of {total} fights."
+  strafe: "Match done. One good thing: you stopped before you shot in {good} of {total} fights."
+  credit: "Match done. One good thing: you had {count} highlight rounds."
+  fallback: "Match done. Check the report and pick one thing for next match."
+
+answers:
+  wake: "Yes?"
+  help: "Say Bruce, then ask: how am I doing, what should I work on, what is the score, repeat, mute, unmute, or a personality name."
+  score: "You have won {won} and lost {lost}."
+  doing_no_data: "Not enough data yet. Play a few fights first."
+  doing_focus: "{won} to {lost}. The main thing to work on is {focus}."
+  doing_clean: "{won} to {lost}. No big mistakes so far. Keep it up."
+  focus: "Work on {focus}."
+  focus_none: "Nothing stands out yet. Keep playing your game."
+  queued: "Got it. I will tell you after the round."
+  muted: "Going quiet."
+  unmuted: "I am back."
+  switched: "Switching to {name}."
+  repeat_none: "I have not said anything yet."
+  unknown: "Sorry, I did not catch that."

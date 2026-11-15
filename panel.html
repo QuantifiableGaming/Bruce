@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Valorant Coach - Control Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/icons/coach.ico">
+<style>
+  :root {
+    --bg: #0f1218; --panel: #171b24; --panel2: #1e2430; --line: #2b3343; --line2: #3a4458;
+    --text: #e8ebf1; --muted: #98a2b5; --accent: #ff4655; --ok: #3ddc84; --warn: #ffd166; --bad: #ff6b6b; --info: #4cc9f0;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; display: grid; grid-template-rows: 56px 1fr; }
+  a { color: var(--info); }
+  button { font: inherit; }
+  /* ---------- top bar ---------- */
+  .top { display: flex; align-items: center; gap: 14px; padding: 0 18px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; letter-spacing: .3px; }
+  .brand img { width: 26px; height: 26px; }
+  .spacer { flex: 1; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; padding: 4px 12px; border-radius: 20px; background: var(--panel2); border: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  .pill .dot { width: 9px; height: 9px; border-radius: 50%; background: #5b6476; }
+  .pill.on { color: var(--text); border-color: #2c6b4a; }
+  .pill.on .dot { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .btn { border-radius: 7px; padding: 8px 14px; border: 1px solid var(--line2); background: var(--panel2); color: var(--text); cursor: pointer; }
+  .btn:hover { border-color: #56627c; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.ok { background: #1f7a4d; border-color: #1f7a4d; color: #fff; font-weight: 600; }
+  .btn.ghost { background: transparent; }
+  .btn.small { padding: 5px 10px; font-size: 13px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  /* ---------- layout ---------- */
+  .main { display: grid; grid-template-columns: 220px 1fr; min-height: 0; }
+  nav { background: var(--panel); border-right: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 3px; }
+  nav button { display: flex; align-items: center; gap: 10px; text-align: left; background: transparent; color: var(--muted); border: 0; border-radius: 7px; padding: 9px 12px; cursor: pointer; }
+  nav button:hover { background: var(--panel2); color: var(--text); }
+  nav button.sel { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--text); box-shadow: inset 3px 0 0 var(--accent); }
+  nav .ico { width: 18px; text-align: center; opacity: .9; }
+  nav .bottom { margin-top: auto; padding: 10px 6px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+  .content { overflow: auto; min-height: 0; }
+  .page { display: none; padding: 26px 30px 60px; max-width: 1100px; }
+  .page.sel { display: block; }
+  .page.full { max-width: none; padding: 0; height: 100%; }
+  .page.full.sel { display: flex; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 22px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 0 0 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .note { color: var(--muted); font-size: 13px; }
+  /* ---------- checklist ---------- */
+  .check { display: grid; grid-template-columns: 28px 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .check:last-child { border-bottom: 0; }
+  .mark { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 14px; }
+  .mark.ok { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--ok); }
+  .mark.bad { background: color-mix(in srgb, var(--bad) 20%, transparent); color: var(--bad); }
+  .mark.warn { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+  .check b { display: block; }
+  .check .note { margin-top: 1px; }
+  .hero { display: flex; align-items: center; gap: 18px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--panel)), var(--panel)); }
+  .hero .big { font-size: 18px; font-weight: 700; }
+  /* ---------- personality ---------- */
+  .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+  .pcard { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .pcard.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 18px color-mix(in srgb, var(--accent) 30%, transparent); }
+  .pcard .name { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .pcard .tag { font-size: 11px; background: var(--accent); color: #fff; padding: 1px 7px; border-radius: 10px; font-weight: 600; }
+  .pcard .desc { color: var(--muted); font-size: 13px; flex: 1; }
+  .pcard .row { display: flex; gap: 8px; }
+  /* ---------- forms ---------- */
+  label.f { display: grid; gap: 5px; margin-bottom: 14px; }
+  label.f > span { font-weight: 600; }
+  input[type=text], input[type=password], input[type=number], select {
+    background: var(--bg); color: var(--text); border: 1px solid var(--line2); border-radius: 7px; padding: 8px 10px; font: inherit; width: 100%;
+  }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .srow { display: grid; grid-template-columns: 1fr 220px; gap: 18px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .srow:last-child { border-bottom: 0; }
+  .srow .ctl { display: flex; gap: 8px; align-items: center; }
+  .srow .ctl input[type=number] { width: 90px; }
+  .switch { position: relative; width: 46px; height: 26px; flex: none; }
+  .switch input { display: none; }
+  .switch span { position: absolute; inset: 0; background: #3a4458; border-radius: 26px; transition: .15s; cursor: pointer; }
+  .switch span::before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .15s; }
+  .switch input:checked + span { background: var(--ok); }
+  .switch input:checked + span::before { transform: translateX(20px); }
+  .radios { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .radios label { flex: 1; min-width: 150px; border: 1px solid var(--line2); border-radius: 10px; padding: 12px; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; }
+  .radios label:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .radios input { accent-color: var(--accent); margin-top: 3px; }
+  .checks { display: flex; gap: 16px; flex-wrap: wrap; }
+  .checks label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .checks input { accent-color: var(--accent); }
+  /* ---------- logs ---------- */
+  .log { background: #0a0c10; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font: 12.5px/1.55 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow: auto; color: #cfd6e4; }
+  .log .c { color: var(--warn); } .log .h { color: var(--info); } .log .m { color: var(--muted); } .log .e { color: var(--bad); }
+  .log:empty::before { content: "Nothing yet."; color: var(--muted); }
+  /* ---------- drawer & modal ---------- */
+  .drawer { position: fixed; right: 18px; bottom: 18px; width: min(620px, calc(100vw - 36px)); background: var(--panel); border: 1px solid var(--line2); border-radius: 12px; box-shadow: 0 10px 40px #000a; display: none; z-index: 30; }
+  .drawer.open { display: block; }
+  .drawer header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); font-weight: 600; }
+  .drawer .log { border: 0; border-radius: 0 0 12px 12px; max-height: 300px; }
+  .modal { position: fixed; inset: 0; background: #000b; display: none; align-items: center; justify-content: center; z-index: 40; }
+  .modal.open { display: flex; }
+  .modal .box { width: min(720px, calc(100vw - 40px)); background: var(--panel); border: 1px solid var(--line2); border-radius: 14px; padding: 18px; }
+  .modal .box h3 { margin: 0 0 10px; display: flex; align-items: center; gap: 10px; }
+  .modal .log { max-height: 50vh; min-height: 120px; }
+  .modal .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; }
+  .spin { width: 14px; height: 14px; border: 2px solid var(--line2); border-top-color: var(--accent); border-radius: 50%; animation: s 0.8s linear infinite; display: inline-block; }
+  @keyframes s { to { transform: rotate(360deg); } }
+  #toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #000d; border: 1px solid var(--line2); padding: 9px 18px; border-radius: 22px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 50; max-width: 80vw; text-align: center; }
+  #toast.on { opacity: 1; }
+  #toast.err { border-color: var(--bad); color: #ffd6d6; }
+  /* ---------- reports & docs ---------- */
+  .rep { display: grid; grid-template-columns: 260px 1fr; gap: 16px; }
+  .rlist { display: flex; flex-direction: column; gap: 4px; max-height: 70vh; overflow: auto; }
+  .rlist button { text-align: left; background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 7px; padding: 8px 10px; cursor: pointer; }
+  .rlist button.sel { border-color: var(--accent); }
+  .md table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 10px 0 16px; }
+  .md th, .md td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  .md th { background: var(--panel2); }
+  .md h1 { font-size: 20px; } .md h2 { font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--text); margin-top: 22px; } .md h3 { font-size: 14px; }
+  .md code { background: var(--panel2); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+  .md li { margin: 3px 0; }
+  iframe.editor { border: 0; width: 100%; height: 100%; flex: 1; background: var(--bg); }
+  kbd { background: var(--panel2); border: 1px solid var(--line2); border-radius: 4px; padding: 0 5px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand"><img src="/icons/coach.ico" alt="">Valorant Coach</div>
+  <span class="pill" id="coachPill"><span class="dot"></span><span id="coachState">Coach stopped</span></span>
+  <span class="spacer"></span>
+  <select id="quickPers" title="Personality for this session" style="width:auto"></select>
+  <label class="pill" style="cursor:pointer" title="Saves every reading and pictures of this match to the recordings folder, for troubleshooting. About 100 to 200 MB for one Swiftplay match."><input type="checkbox" id="recChk" style="accent-color:var(--accent)"> Record match</label>
+  <button class="btn primary" id="startBtn">&#9654; Start coach</button>
+  <button class="btn" id="stopBtn" style="display:none">&#9632; Stop coach</button>
+  <button class="btn ghost small" id="logBtn">Coach log</button>
+  <button class="btn ghost small" id="closeBtn" title="Stop the panel helper">Close panel</button>
+</div>
+<div class="main">
+  <nav id="nav">
+    <button data-p="home" class="sel"><span class="ico">&#8962;</span>Home</button>
+    <button data-p="regions"><span class="ico">&#9635;</span>Screen regions</button>
+    <button data-p="personality"><span class="ico">&#9786;</span>Personality</button>
+    <button data-p="voice"><span class="ico">&#127908;</span>Voice &amp; mic</button>
+    <button data-p="ai"><span class="ico">&#10022;</span>AI coach</button>
+    <button data-p="settings"><span class="ico">&#9881;</span>Settings</button>
+    <button data-p="reports"><span class="ico">&#9776;</span>Reports</button>
+    <button data-p="help"><span class="ico">?</span>Help</button>
+    <div class="bottom">Runs on this PC only.<br>Keep the small black window open.</div>
+  </nav>
+  <div class="content">
+
+    <!-- HOME -->
+    <section class="page sel" id="p-home">
+      <h1>Home</h1>
+      <p class="sub">Check that everything is ready, then start the coach.</p>
+      <div class="card hero" id="hero">
+        <div style="flex:1">
+          <div class="big" id="heroTitle">Checking your setup&hellip;</div>
+          <div class="note" id="heroText"></div>
+        </div>
+        <button class="btn primary" id="heroBtn" style="display:none"></button>
+      </div>
+      <div class="card">
+        <h2>Setup checklist</h2>
+        <div id="checklist"></div>
+      </div>
+    </section>
+
+    <!-- REGIONS -->
+    <section class="page full" id="p-regions">
+      <iframe class="editor" id="editorFrame" title="Region editor"></iframe>
+    </section>
+
+    <!-- PERSONALITY -->
+    <section class="page" id="p-personality">
+      <h1>Personality</h1>
+      <p class="sub">Choose how your coach talks. Click <b>Hear it</b> to listen to sample lines. You can also switch during a match: say &ldquo;<span class="wake">Bruce</span>, switch to sassy&rdquo;.</p>
+      <div class="pgrid" id="pgrid"></div>
+    </section>
+
+    <!-- VOICE -->
+    <section class="page" id="p-voice">
+      <h1>Voice &amp; mic</h1>
+      <p class="sub">Choose your microphone, then test the wake word. The coach voice is on the <a href="#" data-go="settings">Settings</a> page.</p>
+      <div class="grid2">
+        <div class="card">
+          <h2>Microphone</h2>
+          <label class="f"><span>Microphone</span>
+            <select id="micSel"><option value="default">Windows default</option></select>
+          </label>
+          <button class="btn ok" id="micSave">Save microphone</button>
+          <p class="note" style="margin-top:14px">Voice model: <b id="vmState">&hellip;</b></p>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Test the wake word</h2>
+        <p class="note">Click <b>Start test</b>, then say &ldquo;<span class="wake">Bruce</span>, how am I doing?&rdquo; The log shows what the coach heard and what it answered.</p>
+        <div style="display:flex; gap:8px; margin-bottom:10px">
+          <button class="btn primary" id="listenStart">Start test</button>
+          <button class="btn" id="listenStop" disabled>Stop test</button>
+        </div>
+        <div class="log" id="listenLog"></div>
+      </div>
+    </section>
+
+    <!-- AI -->
+    <section class="page" id="p-ai">
+      <h1>AI coach</h1>
+      <p class="sub">An AI can write the coach lines, so they sound less scripted. It only gets the score, mistake counts and your questions &mdash; never screenshots. If the AI is slow or offline, the coach uses its scripted lines.</p>
+      <div class="card">
+        <h2>Provider</h2>
+        <div class="radios">
+          <label><input type="radio" name="prov" value="off"><div><b>Off</b><div class="note">Scripted lines only. Free.</div></div></label>
+          <label><input type="radio" name="prov" value="claude"><div><b>Claude</b><div class="note">Anthropic. Key from console.anthropic.com</div></div></label>
+          <label><input type="radio" name="prov" value="chatgpt"><div><b>ChatGPT</b><div class="note">OpenAI. Key from platform.openai.com</div></div></label>
+        </div>
+        <label class="f" id="keyRow"><span>API key <span class="note" id="keyState"></span></span>
+          <input type="password" id="keyIn" placeholder="Paste a new key, or leave empty to keep the saved key" autocomplete="off">
+          <span class="note">The key is saved in <code>secrets.yaml</code> in the coach folder. Do not share that file.</span>
+        </label>
+        <label class="f"><span>Use the AI for</span>
+          <span class="checks">
+            <label><input type="checkbox" class="usefor" value="tips"> Tips</label>
+            <label><input type="checkbox" class="usefor" value="mental"> Resets and praise</label>
+            <label><input type="checkbox" class="usefor" value="answers"> Answers to &ldquo;Bruce&rdquo;</label>
+            <label><input type="checkbox" class="usefor" value="match_end"> End of match</label>
+          </span>
+        </label>
+        <div style="display:flex; gap:8px">
+          <button class="btn ok" id="aiSave">Save</button>
+          <button class="btn" id="aiTest">Test AI lines</button>
+        </div>
+        <p class="note" id="aiState" style="margin-top:12px"></p>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="page" id="p-settings">
+      <h1>Settings</h1>
+      <p class="sub">Change how the coach works. Screen regions, colour and gun side are on the <a href="#" data-go="regions">Screen regions</a> page.</p>
+      <div class="card">
+        <h2>Coach voice</h2>
+        <div class="grid2" style="gap:24px">
+          <div>
+            <label class="f"><span>Windows voice</span>
+              <select id="voiceSel"><option value="">Personality default</option></select>
+              <span class="note">These are the Windows voices on this PC.</span>
+            </label>
+            <label class="f"><span>Speed: <b id="rateVal">personality default</b></span>
+              <input type="range" id="rateSel" min="100" max="300" step="5">
+              <span class="checks"><label><input type="checkbox" id="rateDefault"> Use the personality's speed</label></span>
+            </label>
+            <div style="display:flex; gap:8px">
+              <button class="btn ok" id="voiceSave">Save voice</button>
+              <button class="btn" id="voiceHear">Hear it</button>
+            </div>
+          </div>
+          <div>
+            <b>Get more voices</b>
+            <ol class="note" style="padding-left:18px; margin:8px 0 12px">
+              <li>Click <b>Open Windows voice settings</b>.</li>
+              <li>Under <b>Manage voices</b>, click <b>Add voices</b>, choose a voice (for example English (Australia)), and click <b>Add</b>.</li>
+              <li>Wait for the download to finish, then click <b>Refresh voice list</b> here.</li>
+            </ol>
+            <div style="display:flex; gap:8px; flex-wrap:wrap">
+              <button class="btn primary" id="voiceMore">Open Windows voice settings</button>
+              <button class="btn" id="voiceRefresh">Refresh voice list</button>
+            </div>
+            <p class="note" id="voiceCount" style="margin-top:10px"></p>
+            <p class="note">Some newer Windows voices, such as the "Natural" voices, do not work with the coach. If a new voice does not show in the list after a refresh, the coach cannot use it.</p>
+          </div>
+        </div>
+      </div>
+      <div id="settingsForm"></div>
+      <div style="display:flex; gap:8px; position: sticky; bottom: 0; padding: 12px 0; background: var(--bg)">
+        <button class="btn ok" id="setSave">Save settings</button>
+        <button class="btn" id="setReset">Undo changes</button>
+        <span class="note" id="setDirty" style="align-self:center"></span>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section class="page" id="p-reports">
+      <h1>Match reports</h1>
+      <p class="sub">The coach saves one report per match: the result, the stats for each round, and what it said.</p>
+      <div class="rep">
+        <div class="rlist" id="rlist"></div>
+        <div class="card md" id="rview"><p class="note">Choose a report.</p></div>
+      </div>
+    </section>
+
+    <!-- HELP -->
+    <section class="page" id="p-help">
+      <h1>Help</h1>
+      <p class="sub">The quick start guide. The full guide is in <code>README.md</code> in the coach folder.</p>
+      <div class="card md" id="helpView"></div>
+    </section>
+  </div>
+</div>
+
+<div class="drawer" id="drawer">
+  <header>Coach log <span class="spacer"></span><button class="btn ghost small" id="drawerClose">&times;</button></header>
+  <div class="log" id="coachLog"></div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <h3><span id="mSpin" class="spin"></span><span id="mTitle">Working&hellip;</span></h3>
+    <p class="note" id="mNote"></p>
+    <div class="log" id="mLog"></div>
+    <div class="actions"><button class="btn" id="mClose">Close</button></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let ST = null, CLOSED = false, statusTimer = null;
+
+function toast(msg, err = false, ms = 3000) {
+  const t = $("toast"); t.textContent = msg; t.className = err ? "on err" : "on";
+  clearTimeout(toast.t); toast.t = setTimeout(() => (t.className = ""), ms);
+}
+async function api(path, body) {
+  if (CLOSED) return null;
+  try {
+    const r = await fetch(path, { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+    const d = await r.json();
+    if (!r.ok) { toast(d.error || "Something went wrong.", true, 5000); return null; }
+    return d;
+  } catch (e) {
+    toast("The panel helper is not running. Start it again with the Valorant Coach Setup icon.", true, 8000);
+    return null;
+  }
+}
+function colorLine(l) {
+  const e = esc(l);
+  if (l.startsWith("[coach]")) return `<span class="c">${e}</span>`;
+  if (l.startsWith("[voice] ERROR")) return `<span class="e">${e}</span>`;
+  if (l.startsWith("[record] ERROR")) return `<span class="e">${e}</span>`;
+  if (l.startsWith("[screenshot]") || l.startsWith("[banner]") || l.startsWith("[record]")) return `<span class="h">${e}</span>`;
+  if (l.startsWith("[heard]") || l.startsWith("[mic]")) return `<span class="h">${e}</span>`;
+  if (/error|failed|traceback|not available|missing/i.test(l)) return `<span class="e">${e}</span>`;
+  if (l.startsWith("Round ")) return `<span class="m">${e}</span>`;
+  return e;
+}
+function setLog(el, lines) { const atEnd = el.scrollTop + el.clientHeight >= el.scrollHeight - 30; el.innerHTML = lines.map(colorLine).join("\n"); if (atEnd) el.scrollTop = el.scrollHeight; }
+
+// ---------- navigation ----------
+function go(page) {
+  document.querySelectorAll("nav button[data-p]").forEach((b) => b.classList.toggle("sel", b.dataset.p === page));
+  document.querySelectorAll(".page").forEach((p) => p.classList.toggle("sel", p.id === "p-" + page));
+  if (page === "regions" && !$("editorFrame").src) $("editorFrame").src = "/editor";
+  if (page === "home") refresh();
+  if (page === "voice") loadVoice();
+  if (page === "settings") { loadSettings(); loadVoice(); }
+  if (page === "reports") loadReports();
+  if (page === "help") loadHelp();
+  if (page === "ai") loadAI();
+  if (page === "personality") renderPersonalities();
+  history.replaceState(null, "", "#" + page);
+}
+document.querySelectorAll("nav button[data-p]").forEach((b) => (b.onclick = () => go(b.dataset.p)));
+document.addEventListener("click", (e) => { const a = e.target.closest("[data-go]"); if (a) { e.preventDefault(); go(a.dataset.go); } });
+
+// ---------- background tasks ----------
+async function runTask(kind, opts = {}) {
+  const { title = "Working…", note = "", personality = null, quiet = false } = opts;
+  const t = await api("/api/run", { kind, personality });
+  if (!t) return null;
+  if (!quiet) { $("mTitle").textContent = title; $("mNote").textContent = note; $("mLog").innerHTML = ""; $("mSpin").style.display = ""; $("modal").classList.add("open"); }
+  let lines = [];
+  while (true) {
+    await new Promise((r) => setTimeout(r, 700));
+    const info = await api(`/api/task/${t.id}?since=${lines.length}`);
+    if (!info) break;
+    lines = lines.concat(info.lines);
+    if (!quiet) setLog($("mLog"), lines);
+    if (!info.running) {
+      if (!quiet) { $("mSpin").style.display = "none"; $("mTitle").textContent = info.code === 0 ? title.replace(/…$/, "") + " – done" : title.replace(/…$/, "") + " – did not finish"; }
+      refresh();
+      return { lines, code: info.code };
+    }
+  }
+  return null;
+}
+$("mClose").onclick = () => $("modal").classList.remove("open");
+
+// ---------- status / home ----------
+async function refresh() {
+  const s = await api("/api/status");
+  if (!s) return;
+  ST = s;
+  document.querySelectorAll(".wake").forEach((e) => (e.textContent = cap(s.wake_word)));
+  renderCoachState(s.coach_running);
+  renderChecklist(s);
+  fillQuickPers(s);
+}
+const cap = (w) => (w || "").charAt(0).toUpperCase() + (w || "").slice(1);
+
+function row(state, title, text, btn) {
+  const sym = { ok: "&#10003;", bad: "&#10007;", warn: "!" }[state];
+  return `<div class="check"><div class="mark ${state}">${sym}</div><div><b>${title}</b><div class="note">${text}</div></div><div>${btn || ""}</div></div>`;
+}
+function renderChecklist(s) {
+  const pName = (s.personalities.find((p) => p.key === s.personality) || { name: cap(s.personality) }).name;
+  const items = [];
+  const pk = s.packages_missing.length === 0;
+  items.push(row(pk ? "ok" : "bad", "Python packages", pk ? `Python ${s.python}, all packages installed.` : `Missing: ${s.packages_missing.join(", ")}`, pk ? "" : `<button class="btn small primary" data-run="install_packages">Install</button>`));
+  items.push(row(s.tesseract ? "ok" : "bad", "Number reader (Tesseract)", s.tesseract ? `Found: ${esc(s.tesseract)}` : "Needed to read ammo, health and the round banner.", s.tesseract ? "" : `<button class="btn small primary" data-run="install_tesseract">Install</button>`));
+  items.push(row(s.screenshot_taken ? "ok" : "warn", "Screen regions", s.screenshot_taken ? `Enemy colour: ${s.enemy_color}. Gun side: ${s.gun_side}. Check them again after a Valorant update.` : "Not set up yet. Take a screenshot and place the boxes.", `<button class="btn small ${s.screenshot_taken ? "" : "primary"}" data-go="regions">Open</button>`));
+  items.push(row(s.voice_model || !s.voice_enabled ? "ok" : "warn", "Voice commands", !s.voice_enabled ? "Turned off in Settings." : s.voice_model ? `Ready. Say "${cap(s.wake_word)}" then a command.` : "The voice model is not downloaded yet.", s.voice_enabled && !s.voice_model ? `<button class="btn small primary" data-run="install_voice_model">Download</button>` : `<button class="btn small" data-go="voice">Test</button>`));
+  items.push(row("ok", "Personality", `${esc(pName)}`, `<button class="btn small" data-go="personality">Change</button>`));
+  const ai = s.ai_provider === "off" ? ["ok", "Off – scripted lines."] : s.ai_ready ? ["ok", `${s.ai_provider === "claude" ? "Claude" : "ChatGPT"} is on.`] : ["warn", `${esc(s.ai_reason)}`];
+  items.push(row(ai[0], "AI coach (optional)", ai[1], `<button class="btn small" data-go="ai">${s.ai_provider === "off" ? "Set up" : "Change"}</button>`));
+  $("checklist").innerHTML = items.join("");
+
+  const blockers = !pk || !s.tesseract;
+  const hb = $("heroBtn");
+  if (s.coach_running) { $("heroTitle").textContent = "The coach is running."; $("heroText").textContent = "Play Valorant. The coach speaks between rounds. Click Stop coach at the top to end."; hb.style.display = "none"; }
+  else if (blockers) { $("heroTitle").textContent = "A few things need installing first."; $("heroText").textContent = "Click Install next to each red item below."; hb.style.display = "none"; }
+  else if (!s.screenshot_taken) { $("heroTitle").textContent = "Next: set up the screen regions."; $("heroText").textContent = "Start a Deathmatch, then place the boxes over your ammo, health and the round banner."; hb.textContent = "Set up screen regions"; hb.onclick = () => go("regions"); hb.style.display = ""; }
+  else { $("heroTitle").textContent = "Ready to play."; $("heroText").textContent = "Start the coach, then start Valorant."; hb.textContent = "▶ Start coach"; hb.onclick = startCoach; hb.style.display = ""; }
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-run]"); if (!b) return;
+  const titles = { install_packages: "Installing Python packages…", install_tesseract: "Installing Tesseract…", install_voice_model: "Downloading the voice model…" };
+  const notes = { install_tesseract: "Click Yes if Windows asks. Keep the default install folder." };
+  runTask(b.dataset.run, { title: titles[b.dataset.run], note: notes[b.dataset.run] || "" });
+});
+
+// ---------- coach start / stop ----------
+function fillQuickPers(s) {
+  const q = $("quickPers"), cur = q.value || s.personality;
+  q.innerHTML = s.personalities.map((p) => `<option value="${p.key}">${esc(p.name)}</option>`).join("") + `<option value="random">Random</option>`;
+  q.value = cur;
+  q.disabled = s.coach_running;
+}
+function renderCoachState(on) {
+  $("coachPill").classList.toggle("on", on);
+  $("coachState").textContent = on ? "Coach running" : "Coach stopped";
+  $("startBtn").style.display = on ? "none" : "";
+  $("stopBtn").style.display = on ? "" : "none";
+}
+async function startCoach() {
+  await refresh();
+  if (ST && (ST.packages_missing.length || !ST.tesseract)) {
+    toast("Some parts are missing. Install them on the Home page first.", true, 5000);
+    go("home"); return;
+  }
+  const r = await api("/api/coach/start", { personality: $("quickPers").value, record: $("recChk").checked });
+  if (!r) return;
+  toast($("recChk").checked ? "Coach started. This match is recorded." : "Coach started. Start Valorant now.");
+  $("recChk").checked = false;  // Recording is for one match only.
+  $("drawer").classList.add("open");
+  renderCoachState(true); pollCoach();
+}
+$("startBtn").onclick = startCoach;
+$("stopBtn").onclick = async () => { await api("/api/coach/stop", {}); toast("Stopping the coach and saving the report…"); };
+$("logBtn").onclick = () => $("drawer").classList.toggle("open");
+$("drawerClose").onclick = () => $("drawer").classList.remove("open");
+let polling = false;
+async function pollCoach() {
+  if (polling) return; polling = true;
+  while (true) {
+    const c = await api("/api/coach");
+    if (!c) break;
+    setLog($("coachLog"), c.lines || []);
+    renderCoachState(c.running);
+    if (!c.running) { if (c.code && c.code !== 0) toast("The coach stopped with an error. Open the coach log.", true, 6000); refresh(); break; }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  polling = false;
+}
+
+// ---------- personality ----------
+function renderPersonalities() {
+  if (!ST) return;
+  const cards = ST.personalities.concat([{ key: "random", name: "Random", description: "A different coach every match. It says who it is at the start." }]);
+  $("pgrid").innerHTML = cards.map((p) => `
+    <div class="pcard ${p.key === ST.personality ? "sel" : ""}">
+      <div class="name">${esc(p.name)} ${p.key === ST.personality ? '<span class="tag">Current</span>' : ""}</div>
+      <div class="desc">${esc(p.description)}</div>
+      <div class="row">
+        <button class="btn small ${p.key === ST.personality ? "" : "primary"}" data-use="${p.key}" ${p.key === ST.personality ? "disabled" : ""}>Use this</button>
+        ${p.key !== "random" ? `<button class="btn small" data-hear="${p.key}">Hear it</button>` : ""}
+      </div>
+    </div>`).join("");
+}
+document.addEventListener("click", async (e) => {
+  const u = e.target.closest("[data-use]");
+  if (u) { if (await api("/api/personality", { name: u.dataset.use })) { toast("Personality saved."); $("quickPers").value = u.dataset.use; await refresh(); renderPersonalities(); } return; }
+  const h = e.target.closest("[data-hear]");
+  if (h) { h.disabled = true; h.textContent = "Playing…"; await runTask("preview", { quiet: true, personality: h.dataset.hear }); h.disabled = false; h.textContent = "Hear it"; }
+});
+
+// ---------- voice & mic ----------
+let voicesLoaded = false, micsLoaded = false;
+async function loadVoice() {
+  await refresh();
+  const s = ST; if (!s) return;
+  $("vmState").innerHTML = s.voice_model ? '<span style="color:var(--ok)">downloaded</span>' : '<span style="color:var(--warn)">not downloaded</span> <button class="btn small" data-run="install_voice_model">Download</button>';
+  const def = s.voice_rate == null;
+  $("rateDefault").checked = def; $("rateSel").disabled = def; $("rateSel").value = s.voice_rate || 180;
+  $("rateVal").textContent = def ? "personality default" : `${s.voice_rate} words per minute`;
+  loadVoiceList(false);
+  if (micsLoaded) return;
+  micsLoaded = true;
+  const mics = parseJSON(await runTask("mics", { quiet: true }));
+  if (mics) $("micSel").innerHTML = `<option value="default">Windows default</option>` + mics.map((d) => `<option value="${d.index}">${esc(d.name)}</option>`).join("");
+  else $("micSel").innerHTML = `<option value="default">Windows default (mic list not available)</option>`;
+  $("micSel").value = s.mic_device == null ? "default" : String(s.mic_device);
+}
+function parseJSON(r) { try { return JSON.parse((r?.lines || []).filter((l) => l.trim().startsWith("[")).pop()); } catch { return null; } }
+$("rateDefault").onchange = () => { $("rateSel").disabled = $("rateDefault").checked; $("rateVal").textContent = $("rateDefault").checked ? "personality default" : `${$("rateSel").value} words per minute`; };
+$("rateSel").oninput = () => ($("rateVal").textContent = `${$("rateSel").value} words per minute`);
+$("voiceSave").onclick = async () => { if (await api("/api/voice", { voice_name: $("voiceSel").value, voice_rate: $("rateDefault").checked ? null : +$("rateSel").value })) { toast("Voice saved."); refresh(); } };
+$("voiceHear").onclick = async () => { await $("voiceSave").onclick(); const b = $("voiceHear"); b.disabled = true; b.textContent = "Playing…"; await runTask("preview", { quiet: true, personality: ST?.personality === "random" ? "calm" : ST?.personality }); b.disabled = false; b.textContent = "Hear it"; };
+async function loadVoiceList(force) {
+  if (force) voicesLoaded = false;
+  if (voicesLoaded) return;
+  voicesLoaded = true;
+  $("voiceCount").textContent = "Reading the voice list…";
+  const v = await runTask("voices", { quiet: true });
+  const voices = parseJSON(v);
+  const cur = ST?.voice_name || "";
+  if (voices) {
+    $("voiceSel").innerHTML = `<option value="">Personality default</option>` + voices.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+    $("voiceSel").value = voices.find((n) => cur && n.toLowerCase().includes(cur.toLowerCase())) || "";
+    $("voiceCount").textContent = `${voices.length} voice${voices.length === 1 ? "" : "s"} found on this PC.`;
+  } else {
+    $("voiceSel").innerHTML = `<option value="">Personality default (voice list not available)</option>`;
+    $("voiceCount").textContent = "The voice list is not available.";
+  }
+}
+$("voiceMore").onclick = async () => {
+  if (await api("/api/open_voice_settings", {})) toast("Windows voice settings opened. Add a voice, then click Refresh voice list.", false, 6000);
+};
+$("voiceRefresh").onclick = () => loadVoiceList(true);
+$("micSave").onclick = async () => { if (await api("/api/mic", { mic_device: $("micSel").value })) toast("Microphone saved."); };
+
+let listenTimer = null;
+$("listenStart").onclick = async () => {
+  const t = await api("/api/listen/start", {}); if (!t) return;
+  $("listenStart").disabled = true; $("listenStop").disabled = false; $("listenLog").innerHTML = "";
+  let lines = [];
+  clearInterval(listenTimer);
+  listenTimer = setInterval(async () => {
+    const info = await api(`/api/task/${t.id}?since=${lines.length}`);
+    if (!info) return;
+    lines = lines.concat(info.lines); setLog($("listenLog"), lines);
+    if (!info.running) { clearInterval(listenTimer); $("listenStart").disabled = false; $("listenStop").disabled = true; refresh(); }
+  }, 800);
+};
+$("listenStop").onclick = async () => { await api("/api/listen/stop", {}); toast("Stopping the test…"); };
+
+// ---------- AI ----------
+async function loadAI() {
+  await refresh(); const s = ST; if (!s) return;
+  document.querySelectorAll('input[name=prov]').forEach((r) => (r.checked = r.value === s.ai_provider));
+  const uses = s.ai_use_for.length ? s.ai_use_for : ["tips", "mental", "answers", "match_end"];
+  document.querySelectorAll(".usefor").forEach((c) => (c.checked = uses.includes(c.value)));
+  updateKeyRow();
+  $("aiState").innerHTML = s.ai_provider === "off" ? "AI is off. The coach uses its scripted lines." : s.ai_ready ? `<span style="color:var(--ok)">Ready.</span> Model: ${esc(s.ai_models[s.ai_provider])}. Click <b>Test AI lines</b> to hear how it writes.` : `<span style="color:var(--warn)">${esc(s.ai_reason)}</span>`;
+}
+function provider() { return (document.querySelector('input[name=prov]:checked') || {}).value || "off"; }
+function updateKeyRow() {
+  const p = provider();
+  $("keyRow").style.display = p === "off" ? "none" : "";
+  if (ST && p !== "off") $("keyState").innerHTML = ST.ai_keys[p] ? '<span style="color:var(--ok)">– a key is saved</span>' : '<span style="color:var(--warn)">– no key saved yet</span>';
+}
+document.querySelectorAll('input[name=prov]').forEach((r) => (r.onchange = updateKeyRow));
+$("aiSave").onclick = async () => {
+  const use_for = [...document.querySelectorAll(".usefor:checked")].map((c) => c.value);
+  if (await api("/api/ai", { provider: provider(), key: $("keyIn").value, use_for })) { $("keyIn").value = ""; toast("AI settings saved."); loadAI(); }
+};
+$("aiTest").onclick = async () => {
+  await $("aiSave").onclick();
+  const p = ST?.personality === "random" ? "calm" : ST?.personality;
+  runTask("ai_test", { title: "Testing AI lines…", note: "Each line shows how long the AI took. The coach waits up to the AI wait time in Settings.", personality: p });
+};
+
+// ---------- settings ----------
+let SET = null;
+async function loadSettings() {
+  SET = await api("/api/settings"); if (!SET) return;
+  $("settingsForm").innerHTML = SET.map((g, gi) => `<div class="card"><h2>${esc(g.group)}</h2>` + g.items.map((it, ii) => {
+    const id = `s_${gi}_${ii}`, v = it.value;
+    let ctl;
+    if (it.type === "bool") ctl = `<label class="switch"><input type="checkbox" id="${id}" ${v ? "checked" : ""}><span></span></label>`;
+    else if (it.type === "str") ctl = `<input type="text" id="${id}" value="${esc(v ?? "")}">`;
+    else if (it.type === "choice") ctl = `<select id="${id}">` + it.choices.map((c) => `<option value="${esc(c[0])}" ${c[0] === v ? "selected" : ""}>${esc(c[1])}</option>`).join("") + `</select>`;
+    else {
+      const step = it.type === "float" ? 0.1 : 1;
+      ctl = `<input type="range" id="${id}_r" min="${it.min}" max="${it.max}" step="${step}" value="${v}"><input type="number" id="${id}" min="${it.min}" max="${it.max}" step="${step}" value="${v}">`;
+    }
+    return `<div class="srow"><div><b>${esc(it.label)}</b><div class="note">${esc(it.help)}</div></div><div class="ctl">${ctl}</div></div>`;
+  }).join("") + `</div>`).join("");
+  SET.forEach((g, gi) => g.items.forEach((it, ii) => {
+    const id = `s_${gi}_${ii}`, el = $(id), r = $(id + "_r");
+    if (r) { r.oninput = () => { el.value = r.value; markDirty(); }; el.oninput = () => { r.value = el.value; markDirty(); }; }
+    else el.oninput = el.onchange = markDirty;
+  }));
+  markDirty();
+}
+function collect() {
+  const out = [];
+  SET.forEach((g, gi) => g.items.forEach((it, ii) => {
+    const el = $(`s_${gi}_${ii}`);
+    let v = it.type === "bool" ? el.checked : (it.type === "str" || it.type === "choice") ? el.value : +el.value;
+    if (JSON.stringify(v) !== JSON.stringify(it.type === "str" ? (it.value ?? "") : it.value)) out.push({ path: it.path, value: v });
+  }));
+  return out;
+}
+function markDirty() { const n = SET ? collect().length : 0; $("setDirty").textContent = n ? `${n} unsaved change${n > 1 ? "s" : ""}` : ""; }
+$("setSave").onclick = async () => {
+  const changes = collect(); if (!changes.length) { toast("No changes to save."); return; }
+  if (await api("/api/settings", { changes })) { toast("Settings saved." + (ST?.coach_running ? " Restart the coach to use them." : "")); loadSettings(); }
+};
+$("setReset").onclick = loadSettings;
+
+// ---------- reports & help ----------
+function md(text) {
+  const lines = text.split("\n"); let html = "", i = 0;
+  const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  while (i < lines.length) {
+    const l = lines[i];
+    if (/^\s*\|/.test(l)) {
+      const rows = []; while (i < lines.length && /^\s*\|/.test(lines[i])) rows.push(lines[i++]);
+      const cells = (r) => r.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+      html += "<table><tr>" + cells(rows[0]).map((c) => `<th>${inline(c)}</th>`).join("") + "</tr>" +
+        rows.slice(2).map((r) => "<tr>" + cells(r).map((c) => `<td>${inline(c)}</td>`).join("") + "</tr>").join("") + "</table>";
+      continue;
+    }
+    let m;
+    if ((m = l.match(/^(#{1,3})\s+(.*)/))) html += `<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`;
+    else if ((m = l.match(/^\s*(\d+)\.\s+(.*)/))) { html += "<ol>"; while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) html += `<li>${inline(lines[i++].replace(/^\s*\d+\.\s+/, ""))}</li>`; html += "</ol>"; continue; }
+    else if ((m = l.match(/^\s*-\s+(.*)/))) { html += "<ul>"; while (i < lines.length && /^\s*-\s+/.test(lines[i])) html += `<li>${inline(lines[i++].replace(/^\s*-\s+/, ""))}</li>`; html += "</ul>"; continue; }
+    else if (l.trim()) html += `<p>${inline(l)}</p>`;
+    i++;
+  }
+  return html;
+}
+async function loadReports() {
+  const list = await api("/api/reports"); if (!list) return;
+  if (!list.length) { $("rlist").innerHTML = '<p class="note">No reports yet. Play a match with the coach running.</p>'; return; }
+  $("rlist").innerHTML = list.map((r, i) => `<button data-rep="${esc(r.name)}" class="${i === 0 ? "sel" : ""}">${new Date(r.time * 1000).toLocaleString()}</button>`).join("");
+  showReport(list[0].name);
+}
+async function showReport(name) {
+  document.querySelectorAll("[data-rep]").forEach((b) => b.classList.toggle("sel", b.dataset.rep === name));
+  const r = await api("/api/report/" + encodeURIComponent(name)); if (r) $("rview").innerHTML = md(r.text);
+}
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-rep]"); if (b) showReport(b.dataset.rep); });
+async function loadHelp() { const r = await api("/api/guide"); if (r) $("helpView").innerHTML = md(r.text); }
+
+// ---------- close ----------
+$("closeBtn").onclick = async () => {
+  if (ST?.coach_running && !confirm("The coach is running. Closing the panel also stops the coach. Close anyway?")) return;
+  await api("/api/shutdown", {});
+  CLOSED = true; clearInterval(statusTimer); clearInterval(listenTimer);
+  document.body.innerHTML = '<div style="padding:80px;text-align:center;color:#98a2b5;grid-column:1/-1"><h2 style="color:#e8ebf1;text-transform:none;letter-spacing:0;font-size:22px">Control panel closed</h2><p>You can close this tab. To open it again, double-click <b>Valorant Coach Setup</b>.</p></div>';
+};
+
+// ---------- start ----------
+(async function init() {
+  await refresh();
+  const page = location.hash.slice(1);
+  go(["home", "regions", "personality", "voice", "ai", "settings", "reports", "help"].includes(page) ? page : "home");
+  if (ST && ST.coach_running) pollCoach();
+  statusTimer = setInterval(() => { if (!polling && !CLOSED) api("/api/status").then((s) => { if (s) { ST = s; renderCoachState(s.coach_running); if (s.coach_running) pollCoach(); } }); }, 5000);
+})();
+</script>
+</body>
+</html>
