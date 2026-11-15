@@ -10,49 +10,71 @@ voice:
   name_contains: ""
 
 reset:
-  - "No worries, mate. Next one's ours."
-  - "All good. Shake it off and go again."
-  - "Rough patch, mate. Deep breath."
-  - "She'll be right. Just play your game."
-  - "Don't stress. One round at a time."
-  - "Bit of a slump. Easy fix, stay chill."
-  - "Forget it, mate. Fresh round."
-  - "Happens to everyone. Let's go again."
+- "No worries, mate. Next one's ours."
+- "All good. Shake it off and go again."
+- "Rough patch, mate. Deep breath."
+- "She'll be right. Just play your game."
+- "Don't stress. One round at a time."
+- "Bit of a slump. Easy fix, stay chill."
+- "Forget it, mate. Fresh round."
+- "Happens to everyone. Let's go again."
 
+- All good, mate. Next one.
+- Bit rough. Shake it off.
+- No stress, mate. Go again.
+- Deep breath, mate. You're right.
+- Forget that one. Have another crack.
+- Easy, mate. One round at a time.
 credit:
-  - "Too easy, mate!"
-  - "Beauty! That was mint."
-  - "Ripper of a round, mate."
-  - "Absolute weapon. Keep it up."
-  - "Good stuff, mate. More of that."
-  - "Mate, that was class."
-  - "Legend. Keep cooking."
+- "Too easy, mate!"
+- "Beauty! That was mint."
+- "Ripper of a round, mate."
+- "Absolute weapon. Keep it up."
+- "Good stuff, mate. More of that."
+- "Mate, that was class."
+- "Legend. Keep cooking."
 
+- You beauty!
+- That was unreal, mate.
+- Good on ya. Keep it going.
+- Cracking round, mate.
+- Nice one, legend.
+- Too good, mate.
 focus:
-  - "Just one thing this round, mate: {focus}."
-  - "Keep it simple. {focus}, that's it."
-  - "Easy does it. Think about {focus}."
+- "Just one thing this round, mate: {focus}."
+- "Keep it simple. {focus}, that's it."
+- "Easy does it. Think about {focus}."
 
 tips:
   crosshair_low:
-    - "Crosshair's a bit low, mate. Bump it up to head height."
-    - "Aim's sitting low. Lift it a touch."
-    - "Heads are higher than that, mate."
+  - "Crosshair's a bit low, mate. Bump it up to head height."
+  - "Aim's sitting low. Lift it a touch."
+  - "Heads are higher than that, mate."
+  - Bump the crosshair up a bit, mate.
+  - Aim for heads, not belly buttons, mate.
   crosshair_high:
-    - "Crosshair's floating high, mate. Bring it down a bit."
-    - "Aim's a bit high. Drop it to head level."
+  - "Crosshair's floating high, mate. Bring it down a bit."
+  - "Aim's a bit high. Drop it to head level."
+  - Bring it down a touch, mate.
+  - A bit high, mate. Head level.
   moving_shots:
-    - "You're shooting on the run, mate. Stop, then shoot."
-    - "Counter-strafe first, mate. Then send it."
-    - "Feet still for that first shot."
+  - "You're shooting on the run, mate. Stop, then shoot."
+  - "Counter-strafe first, mate. Then send it."
+  - "Feet still for that first shot."
+  - Pull up before you shoot, mate.
+  - Stop running, then have a shot.
   long_spray:
-    - "Easy on the spray, mate. Short bursts."
-    - "Let go of the trigger a bit. Burst it."
-    - "Long sprays won't cut it at range, mate."
+  - "Easy on the spray, mate. Short bursts."
+  - "Let go of the trigger a bit. Burst it."
+  - "Long sprays won't cut it at range, mate."
+  - Short bursts, mate. Don't empty the mag.
+  - Tap it, mate. Burst and reset.
   bad_reload:
-    - "Reloaded mid fight, mate. Wait till you're safe."
-    - "Hold off on that reload. Back off first."
+  - "Reloaded mid fight, mate. Wait till you're safe."
+  - "Hold off on that reload. Back off first."
 
+  - Get behind something before you reload, mate.
+  - Finish the fight first, then reload.
 match_good:
   crosshair: "Good game, mate. Crosshair was on head height in {good} of {total} fights. Nice."
   strafe: "Good game, mate. You stopped before shooting in {good} of {total} fights. Nice."
@@ -70,3 +92,47 @@ answers:
   unmuted: "G'day, I'm back."
   switched: "No worries. Switching to {name}."
   unknown: "Sorry mate, didn't catch that."
+agent_select:
+- Righto, agent select. Pick someone you like, mate.
+- New match, mate. Let's have a good one.
+- Here we go, mate. Lock in your main.
+- Match is up. Pick your agent and relax.
+- Alright mate, who are we playing?
+agent_role:
+  duelist:
+  - '{agent}, nice. In you go first, mate. Stop before you shoot.'
+  - "{agent}! Take a bit of space, mate. The team's behind you."
+  initiator:
+  - '{agent}, good pick. Set the team up, mate.'
+  - '{agent}. Use your gear, then back yourself.'
+  controller:
+  - '{agent}, nice one. Stay alive, mate.'
+  - '{agent}. Play it slow, mate. No rush.'
+  sentinel:
+  - '{agent}, solid. Sit tight and be patient, mate.'
+  - '{agent}. Hold your spot, mate. Let them come to you.'
+agent_any:
+- '{agent}, good pick, mate.'
+- "{agent}. Sweet. Let's have a crack."
+debrief:
+  victory:
+  - Victory, mate! {won} to {lost}. You beauty.
+  - You won {won} to {lost}. Good stuff, mate.
+  - That's a win, {won} to {lost}. Too easy.
+  defeat:
+  - Defeat, {won} to {lost}. No worries, mate.
+  - Lost {won} to {lost}. She'll be right.
+  - '{won} to {lost}, mate. Bit unlucky.'
+  draw:
+  - A draw, mate. {won} to {lost}.
+  unknown:
+  - That's the match, mate.
+  good_crosshair: Crosshair was on head height in {good} of {total} fights. Nice.
+  good_strafe: You pulled up before shooting in {good} of {total} fights. Good stuff.
+  good_credit: "Cracking rounds: {count}. Nice."
+  work_on: Next match, have a go at {focus}.
+  clean: Didn't spot any bad habits, mate.
+  signoff:
+  - Report's saved. Grab a drink, mate.
+  - Good session, mate. Go again when you're ready.
+  - Catch you next match, mate.

@@ -8,50 +8,126 @@ voice:
   name_contains: ""
 
 reset:
-  - "Shake it off! We are not done yet!"
-  - "Next round is ours. Let's go!"
-  - "Forget that one. Big comeback starts now!"
-  - "Head up! Your best round is next!"
-  - "Losing streaks end. Make it end now!"
-  - "New round, new energy. Let's go!"
-  - "Breathe, lock in, and go take it back!"
-  - "They got lucky. Show them what you have!"
+- "Shake it off! We are not done yet!"
+- "Next round is ours. Let's go!"
+- "Forget that one. Big comeback starts now!"
+- "Head up! Your best round is next!"
+- "Losing streaks end. Make it end now!"
+- "New round, new energy. Let's go!"
+- "Breathe, lock in, and go take it back!"
+- "They got lucky. Show them what you have!"
 
+- Shake it off! Big round coming!
+- Reset! You are one round from a streak!
+- Deep breath, then go get it!
+- That's done! Eyes forward!
+- Comebacks start right here!
+- New round! Bring the energy!
+- Heads up! The best round of your day is next!
+- Losing streak? More like a launch pad! Go!
+- Wipe it clean! Fresh round, fresh fire!
+- You've got this! One clean fight changes it all!
+- Breathe in, lock in, let's go!
+- That one's history! Make some new history!
+- Every comeback needs a first round! This is it!
+- Stay loud, stay sharp! Next round is yours!
+- Reset the brain, reload the hype! Go!
+- They got theirs! Now you get yours!
+- Hands loose, eyes sharp! Let's take it back!
+- It's not over! It's just getting good!
+- Shake out those hands! Big play incoming!
+- Down but not out! Show them!
 credit:
-  - "What a round! Unreal!"
-  - "That is what I'm talking about!"
-  - "Huge! Keep that going!"
-  - "Massive play! You are on fire!"
-  - "Clip that! Incredible!"
-  - "Let's go! That was insane!"
-  - "Too clean! Do it again!"
-  - "Big moves! Stay hot!"
+- "What a round! Unreal!"
+- "That is what I'm talking about!"
+- "Huge! Keep that going!"
+- "Massive play! You are on fire!"
+- "Clip that! Incredible!"
+- "Let's go! That was insane!"
+- "Too clean! Do it again!"
+- "Big moves! Stay hot!"
 
+- Yes! That's the stuff!
+- What a round! Keep it rolling!
+- Clean! So clean!
+- You're cooking now!
+- Big round! Let's go again!
+- That's a highlight! More!
+- Let's go! That was beautiful!
+- You are locked in! Don't stop!
+- Massive round! The lobby felt that!
+- That's the one! Run it back!
+- So sharp! Keep that crosshair hot!
+- Boom! That's how it's done!
+- You made that look easy! Again!
+- What a play! I'm on my feet!
+- Clean, calm, deadly! More!
+- That's a statement round! Keep talking!
+- You're heating up! Stay on it!
+- Perfect! Bottle that and use it again!
+- The energy is real! Keep it going!
+- Now that's a round! Love it!
 focus:
-  - "One job this round: {focus}. Let's go!"
-  - "Lock in on {focus}. You've got this!"
-  - "Simple plan: {focus}. Go!"
+- "One job this round: {focus}. Let's go!"
+- "Lock in on {focus}. You've got this!"
+- "Simple plan: {focus}. Go!"
 
+- This round, all in on {focus}! Let's go!
+- Just {focus}! Nail it and the round is yours!
+- "Eyes on one thing: {focus}! You've got it!"
 tips:
   crosshair_low:
-    - "Crosshair up! Heads are higher than that!"
-    - "Lift that aim! Head level, every time!"
-    - "Aim up and those fights are yours!"
+  - "Crosshair up! Heads are higher than that!"
+  - "Lift that aim! Head level, every time!"
+  - "Aim up and those fights are yours!"
+  - Head height! That's where the kills are!
+  - Aim higher and watch them drop!
+  - Crosshair to head height! Easy kills are waiting!
+  - Raise it up! Heads, heads, heads!
+  - A little higher and you're unstoppable!
+  - Aim where the heads are! You'll feel the difference!
+  - Lift that crosshair and watch the fights flip!
   crosshair_high:
-    - "Bring the crosshair down! Right at head level!"
-    - "Aim is floating high! Drop it a touch!"
+  - "Bring the crosshair down! Right at head level!"
+  - "Aim is floating high! Drop it a touch!"
+  - A touch lower! Right on the head!
+  - Bring it down and click heads!
+  - Just a bit lower! Right on the dome!
+  - Settle that aim on head level! You've got it!
+  - Down a touch! That's the sweet spot!
+  - Lower and lock! Heads are right there!
   moving_shots:
-    - "Stop and pop! Counter-strafe, then fire!"
-    - "Plant your feet, then shoot!"
-    - "Stand still for that first shot and they drop!"
+  - "Stop and pop! Counter-strafe, then fire!"
+  - "Plant your feet, then shoot!"
+  - "Stand still for that first shot and they drop!"
+  - Stop, shoot, win! Easy!
+  - Feet still, then fire! You've got it!
+  - Stop, then shoot! That first bullet will fly true!
+  - Plant and fire! That's a winning habit!
+  - Feet still, shots clean! Let's go!
+  - Counter-strafe and click! You'll love it!
+  - Freeze for the shot, then move! Easy!
   long_spray:
-    - "Bursts, not sprays! Tap, tap, tap!"
-    - "Short bursts win those fights! Let go of the trigger!"
-    - "Control it! Quick bursts at range!"
+  - "Bursts, not sprays! Tap, tap, tap!"
+  - "Short bursts win those fights! Let go of the trigger!"
+  - "Control it! Quick bursts at range!"
+  - Quick bursts! Bang bang, reset!
+  - Short and sharp! Burst them down!
+  - Three shots and reset! Sharp and deadly!
+  - Burst it! Your accuracy will thank you!
+  - Short bursts, big results! Go!
+  - Tap, tap, done! Keep it tight!
+  - Let go early! The first shots do the work!
   bad_reload:
-    - "No reloads in a fight! Get safe first!"
-    - "Reload later! Swap or back off!"
+  - "No reloads in a fight! Get safe first!"
+  - "Reload later! Swap or back off!"
 
+  - Win the fight first, reload after!
+  - Cover first, then reload! Stay alive!
+  - Safe spot first, then reload! Stay in the fight!
+  - Finish them, then reload! You've got the bullets!
+  - Reload behind cover! Live to fight again!
+  - Hold that reload! Win first!
 match_good:
   crosshair: "GG! Highlight of the match: head-height crosshair in {good} of {total} fights!"
   strafe: "GG! Highlight of the match: you stopped before shooting in {good} of {total} fights!"
@@ -68,3 +144,71 @@ answers:
   unmuted: "I'm back, baby!"
   switched: "Switching to {name}! Let's go!"
   unknown: "Huh? Say that again!"
+agent_select:
+- Agent select! Let's get it!
+- New match! Pick your main and let's go!
+- Here we go! Lock in something fun!
+- Match found! Time to show up!
+- Let's go! Pick your agent and bring the energy!
+- Agent select! Who's it going to be? Let's go!
+- Queue popped! This is our match!
+- Pick your favorite and let's make plays!
+- New lobby, new chance to pop off!
+- It's go time! Lock in and bring the fire!
+agent_role:
+  duelist:
+  - '{agent}! Go get those first kills! Stop, then shoot!'
+  - '{agent}! Take that space! Your team is right behind you!'
+  - '{agent}! First in, first blood! Stop before you shoot!'
+  - "{agent}! You're the spark! Light it up!"
+  initiator:
+  - '{agent}! Set them up and knock them down!'
+  - "{agent}! Open the round for your team! Let's go!"
+  - "{agent}! You start the party! Let's go!"
+  - '{agent}! Break them open for the team!'
+  controller:
+  - '{agent}! You run this map! Stay alive!'
+  - '{agent}! Smoke it up and stay in the fight!'
+  - '{agent}! The map is yours! Stay alive and own it!'
+  - "{agent}! Calm head, big impact! Let's go!"
+  sentinel:
+  - '{agent}! Lock that site down!'
+  - '{agent}! Nobody gets past you! Stay patient!'
+  - "{agent}! You're the wall! Hold strong!"
+  - '{agent}! Patience and power! Lock it down!'
+agent_any:
+- "{agent}! Great pick! Let's go!"
+- '{agent}! Love it! Time to pop off!'
+- '{agent}! Yes! This is going to be good!'
+- "{agent}! Perfect! Let's make some highlights!"
+debrief:
+  victory:
+  - Victory! {won} to {lost}! Let's go!
+  - You won {won} to {lost}! What a match!
+  - That's a win! {won} to {lost}!
+  - Winner! {won} to {lost}! You earned that!
+  - Victory! {won} to {lost}! What a performance!
+  - "{won} to {lost}! That's a win! Amazing work!"
+  defeat:
+  - Defeat, {won} to {lost}. We go again!
+  - Lost {won} to {lost}, but the next one is yours!
+  - '{won} to {lost}. Tough one! Head up!'
+  - '{won} to {lost}. A loss, but you kept fighting! Love that!'
+  - Defeat, {won} to {lost}. Shake it off! Next one!
+  - Lost {won} to {lost}! That's fuel for the next match!
+  draw:
+  - A draw! {won} to {lost}! So close!
+  unknown:
+  - Match over! Good game!
+  good_crosshair: Head-height crosshair in {good} of {total} fights! Love that!
+  good_strafe: You stopped before shooting in {good} of {total} fights! Clean!
+  good_credit: "Highlight rounds: {count}! Huge!"
+  work_on: Next match, let's nail {focus}!
+  clean: No repeated mistakes! That's clean play!
+  signoff:
+  - Report saved! Queue up when you're ready!
+  - Great session! Let's run it back!
+  - Good game! Go again!
+  - Stretch, hydrate, and let's go again!
+  - Report's ready! You're getting better every match!
+  - Great effort! See you in the next queue!

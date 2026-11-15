@@ -57,7 +57,63 @@ class Coach:
         }
         return max(issues, key=issues.get) if issues else None
 
-    def round_end(self, won, credit, stats):
+    def sync_score(self, score):
+        """Take the real score from the screen, for example when the coach starts mid-match."""
+        self.won, self.lost = score
+        self.round_no = self.won + self.lost
+
+    def pregame(self):
+        """A line for the agent select screen."""
+        return self.picker.pick("agent_select", self.lines["agent_select"])
+
+    def agent_line(self, agent, role):
+        """A line about the agent the player selected."""
+        options = self.lines["agent_role"].get(role) or self.lines["agent_any"]
+        return self.picker.pick("agent_" + str(role), options).format(agent=agent)
+
+    def _best_thing(self, rounds):
+        """Return (kind, values) for the best thing in the match, or (None, {})."""
+        tol = self.checks["crosshair"]["tolerance_px_at_1080"]
+        offsets = [o for r in rounds for o in r.crosshair_offsets]
+        bursts = sum(r.judged_bursts for r in rounds)
+        still = bursts - sum(r.moving_bursts for r in rounds)
+        candidates = []
+        if len(offsets) >= 5:
+            good = sum(1 for o in offsets if abs(o) <= tol)
+            candidates.append((good / len(offsets), "crosshair", {"good": good, "total": len(offsets)}))
+        if bursts >= 10:
+            candidates.append((still / bursts, "strafe", {"good": still, "total": bursts}))
+        candidates = [c for c in candidates if c[0] >= 0.5]
+        if candidates:
+            _, kind, values = max(candidates)
+            return kind, values
+        if self.credits:
+            return "credit", {"count": self.credits}
+        return None, {}
+
+    def debrief(self, rounds, result=None, score=None):
+        """Return the end-of-match debrief: result, one good thing, one thing to work on, sign-off."""
+        d = self.lines["debrief"]
+        if score:
+            self.sync_score(score)
+        key = {"VICTORY": "victory", "DEFEAT": "defeat", "DRAW": "draw"}.get(str(result or "").upper())
+        if key is None:
+            key = "victory" if self.won > self.lost else "defeat" if self.lost > self.won else "unknown"
+            if self.won == self.lost == 0:
+                key = "unknown"
+        parts = [self.picker.pick("debrief_" + key, d[key]).format(won=self.won, lost=self.lost)]
+        kind, values = self._best_thing(rounds)
+        if kind:
+            parts.append(d["good_" + kind].format(**values))
+        worst = max(self.issue_counts, key=self.issue_counts.get) if self.issue_counts else None
+        if worst:
+            parts.append(d["work_on"].format(focus=self.lines["focus_names"][worst]))
+        elif rounds:
+            parts.append(d["clean"])
+        parts.append(self.picker.pick("debrief_signoff", d["signoff"]))
+        return " ".join(parts)
+
+    def round_end(self, won, credit, stats, score=None):
         """Return (kind, text) or None. Mental messages win over tips after losses."""
         self.round_no += 1
         self.last_issue = None
@@ -68,6 +124,8 @@ class Coach:
         else:
             self.lost += 1
             self.loss_streak += 1
+        if score:
+            self.sync_score(score)   # The score on the screen is the truth.
         lead = self.won - self.lost
         self.peak_lead = max(self.peak_lead, lead)
         if credit:

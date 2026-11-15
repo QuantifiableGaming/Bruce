@@ -4,12 +4,14 @@ This program watches your screen while you play Valorant. At the end of each rou
 
 The program only captures the screen. It does not read game memory, inject into the game, or draw an overlay. It stays silent during rounds.
 
+> **Use at your own risk.** This is a free hobby project. Riot Games did not make it and has not approved it. Read "Rules" before you use it, and before you share it.
+
 ## What it checks
 
 | Check | How it works |
 |---|---|
-| Crosshair height | Finds the enemy highlight outline near the crosshair when an enemy first appears. It compares the head height to the screen center. |
-| Shooting while moving | Measures your movement with optical flow before your first shot. It removes camera rotation, so turning does not count as moving. It does not judge flicks. |
+| Shooting while moving | Reads Valorant's **Shooting Error** stat for the first shot of each burst. Above 1 degree means you moved when you fired. Turn the stat on in Settings > Video > Stats (Text Only). Without the stat, the coach guesses from the picture with optical flow, which is less exact. |
+| Crosshair height | **Off by default.** It looks for the enemy highlight outline near the crosshair. In tests on real games, smokes and abilities gave false results. Turn it on with `checks.crosshair.enabled: true` to try it. |
 | Spraying too long | Reads the ammo counter. It counts the shots in each burst. |
 | Reloading at bad times | Flags a reload when you had ammo left and took damage in the last 2.5 seconds. |
 | Mental coach | Gives a reset after a loss streak or a lost lead. It gives credit for clutches, aces, and wins after a streak. It gives a "one focus" message after two lost rounds. |
@@ -37,6 +39,16 @@ The Control Panel is a local website for all setup and use. Double-click **Valor
 
 **Start coach** and **Stop coach** at the top run the coach from the panel. **Coach log** shows what the coach does and says. **Stop coach** stops it cleanly, so it saves the match report.
 
+## Settings files
+
+| File | Purpose |
+|---|---|
+| `config.yaml` | Your settings. The coach creates it on the first start. Updates do not replace it. |
+| `config.default.yaml` | The default settings. Updates replace it. Do not edit it. |
+| `secrets.yaml` | Your AI keys. Updates do not replace it. |
+
+To update, unzip the new version over the coach folder. After an update, the coach adds new settings to `config.yaml` and keeps your values.
+
 ## Launchers
 
 | File | What it does |
@@ -47,6 +59,8 @@ The Control Panel is a local website for all setup and use. Double-click **Valor
 | `Classic Setup Menu.bat` | The older text menu with the same tools. Use it if the panel does not work. |
 | `editor.html` | The visual region editor. Open it from the Setup menu, so Save can write to `config.yaml`. |
 | `create_shortcuts.bat` | Creates the two icon shortcuts in the coach folder and on the desktop. Run it again if you move the folder. |
+| `Make Share Zip.bat` | Makes a zip that is safe to give to a friend. Your keys, settings, recordings and reports stay out. It is not in the share zip. |
+| `Split Video.bat` | Drag a game video onto it. It cuts the video into parts under 400 MB in a `parts` folder next to the video, for replay tests. It is not in the share zip. |
 
 A `.bat` file cannot have its own icon in Windows. The crosshair and gear icons show only on the shortcuts.
 
@@ -122,7 +136,9 @@ Use `--silent` to print messages instead of speaking them. Use `--personality ra
 | `tough` | Strict and direct. Firm, but never insulting. |
 | `mate` | Laid-back Aussie mate. Relaxed and friendly. |
 | `sassy` | Cheeky and playful. Roasts your plays, then tells you how to fix them. The roasts get gentler after a loss streak. |
+| `savage` | Funny and mean. Short roasts made for clips. It still tells you the fix. No swearing. |
 | `random` | Picks a different personality at the start of each match and says which one. |
+| `mix` | Picks a different personality each round. It does not say which one. |
 
 To choose a personality, do one of these:
 
@@ -178,7 +194,7 @@ If the recognizer hears "Bruce" as another word, add that word to `voice_control
 | "Bruce" | The coach answers "Yes?" and waits for a command. | At once |
 | "Bruce, mute" / "be quiet" | The coach goes silent. | At once |
 | "Bruce, unmute" / "talk again" | The coach speaks again. | At once |
-| "Bruce, switch to sassy" | Changes the personality (calm, hype, tough, mate, sassy, random). | At once |
+| "Bruce, switch to sassy" | Changes the personality (calm, hype, tough, mate, sassy, savage, random, mix). | At once |
 | "Bruce, say that again" | Repeats the last message. | At once |
 | "Bruce, help" | Lists the commands. | At once |
 | "Bruce, how am I doing?" / "how am I going?" | Score and the main thing to work on. | Between rounds |
@@ -231,27 +247,31 @@ The defaults are `claude-haiku-5-5` and `gpt-5.4-mini`, which are fast and low-c
 
 Your key is in `secrets.yaml` in the coach folder. Do not share that file. If you share the coach folder with a friend, delete `secrets.yaml` from the copy first. You can also use the `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` environment variable instead of the file.
 
-## If the coach does not detect rounds
+## How the coach follows a match
 
-The coach detects a round end when it reads "WON" or "LOST" in the Round banner box. It needs the same result in two reads, and an ammo or health reading in the last 20 seconds.
+| Moment | What the coach reads | What it does |
+|---|---|---|
+| Agent select | The mode name at the top left, and the role and agent name on the right | Says one line when agent select starts, and one line about your agent after you keep it selected for 8 seconds. |
+| Round end | The round score at the top of the screen (yours on the left) | Counts the round when two reads in a row show the new score. Then it gives a tip, a reset, or praise. |
+| Banner | BUY PHASE, MATCH POINT, CLUTCH, ACE, TEAM ACE, FLAWLESS, THRIFTY | Uses the buy phase to answer questions. Uses the highlight words for praise. |
+| Match end | VICTORY or DEFEAT on the results page | Gives a spoken debrief (result, one good thing, one thing to work on) and saves the report. |
 
-1. During a match, press **F9** while the round result shows. The coach saves the screen to the `screenshots` folder and loads it into the region editor.
-2. Open Screen regions. Drag the **Round banner** box over the result text and click **Test reading**. The Banner line shows what the coach read.
-3. If the words on screen are not WON, WIN, LOST or LOSS, add the real words under `banner_keywords` in `config.yaml`.
-4. The file `logs/banner_reads.txt` lists every text the coach read in the banner box during the last session, with the ammo and health values.
+The score is on screen for the whole match, also when you are dead, so it is the main signal. If the coach starts in the middle of a match, it takes the score from the screen. The score, mode and agent areas are fixed for 16:9 screens. For another screen shape, set `score_left`, `score_right`, `top_left` and `agent_panel` under `regions` in `config.yaml`.
+
+If the coach does not detect rounds, record a match (see the next section) and read `summary.txt`. It lists every score change the coach saw.
 
 ## Record a match for troubleshooting
 
-Tick **Record match** in the Control Panel before you click **Start coach** (or run `python main.py live --record`). The recording is for one coach session. It stops when you click **Stop coach**, or after 45 minutes.
+In the Control Panel, open Settings > Troubleshooting and turn on **Record the next match**. Then click **Start coach**. (You can also run `python main.py live --record`.) The recording is for one coach session. It stops when you click **Stop coach**, or after 45 minutes.
 
 The coach saves a folder `recordings/match_<date>_<time>` with these items:
 
 | Item | Contents |
 |---|---|
-| `summary.txt` | How often the ammo and health readings worked, which result words were found, and every banner text seen. Read this first. |
-| `readings.csv` | One line for each reading (about 10 per second): time, ammo, health, and banner text. |
-| `banner` folder | A picture of the Round banner box at each banner read (about 2 per second). |
-| `hud` folder | A picture of the Health and Ammo boxes at each banner read. |
+| `summary.txt` | How fast the coach read the screen, how often each reading worked, every score change, and every text seen. Read this first. |
+| `readings.csv` | One line for each reading: time, ammo, health, score, banner text, and menu text. |
+| `banner` folder | A picture of the top of the screen (score and banner) at each score read. |
+| `hud` folder | A picture of the Health and Ammo boxes at each score read. |
 | `full` folder | The full screen every 2 seconds. |
 
 A Swiftplay match uses about 100 to 200 MB. Delete old recordings when you do not need them. The pictures show your screen, including player names and chat, so check them before you share them.
@@ -259,20 +279,61 @@ A Swiftplay match uses about 100 to 200 MB. Delete old recordings when you do no
 ## Known limits
 
 - **Rounds and matches** come from OCR of the banner text. If the coach misses rounds, check the banner region and the words under `banner_keywords`.
-- **Death detection** needs the health counter to show 0. If it misses a death, the program can count your teammate's shots while you spectate.
+- **Screen and language.** The coach is tested at 1920 x 1080 (16:9) only. Other 16:9 sizes should work. 16:10, 4:3 and stretched screens need new boxes on the Screen regions page. Deaths ("SWITCH PLAYER") and the Shooting Error stat are found by their English text. In another game language, the coach misses deaths more often and uses the optical-flow guess for moving shots.
+- **Death detection** looks for "SWITCH PLAYER" (you spectate a teammate). A second check counts a death when you took damage and then your ammo and health went off the screen.
+- **Moving shots without the Shooting Error stat** use optical flow. In tests, that guess matched the stat for about 76% of bursts.
 - **Weapon swaps** can look like a reload. The reload check only counts a reload when you also took damage, which removes most false alarms.
 - **Spray length** uses one limit for all weapons. If you play SMGs, raise `long_spray.max_shots`.
-- **Crosshair height** uses the highlight color. Red objects in the map, such as abilities or decorations, can cause false readings. Purple or yellow highlight colors usually give fewer false readings.
+- **Crosshair height** is off by default. It uses the highlight color, and smokes, cages, abilities and red objects in the map cause false readings.
 - **Riot patches** can move or change the HUD. If the checks stop working after a patch, calibrate again.
 
 ## Rules
 
-Riot does not allow tools that give real-time performance guidance. This program speaks only between rounds and gives tips about habits, not tactical calls. It is still not approved by Riot.
+Riot's developer policy rejects in-game apps that give real-time information to improve play immediately ("go here now"). It accepts coaching that helps players learn over time. See the VALORANT section of the Riot Developer Portal: https://developer.riotgames.com/docs/valorant
 
+This program tries to stay on the coaching side:
+
+- It speaks only in agent select, between rounds, and after the match. It never speaks during a round.
+- It gives tips about your own habits (moving shots, spray length, reloads). It never gives tactical calls, and it never tells you about enemies.
+- It only reads pixels from your screen. It does not read game memory, change game files, or press keys.
+
+It is still not approved by Riot, and Riot decides what is allowed. Between-round tips are a grey area.
+
+- You use it at your own risk. You are responsible for your own account.
 - Test it in Deathmatch, Team Deathmatch, and unrated first.
 - Decide for yourself if you want to use it in Ranked.
-- Keep it for your own use. If you want to share it with other players, apply for Riot approval first.
+- Share it only with friends who read this section. Do not publish it or sell it without Riot approval.
+
+## Share the coach with a friend
+
+Do not zip the coach folder yourself. It has your API keys (`secrets.yaml`), your settings, your screenshots, your recordings and your reports.
+
+1. Double-click **Make Share Zip.bat** in the coach folder.
+2. The zip goes into the `share` folder inside the coach folder, for example `share\valorant_coach_share_20261115.zip`. File Explorer opens and shows it. It has only the program files.
+3. Your friend unzips it and runs `install.bat`, then follows QUICKSTART.md. They need their own API keys for the AI coach and for ElevenLabs.
+
+## ElevenLabs voices (optional)
+
+ElevenLabs voices sound more human than Windows voices. You need an ElevenLabs account and an API key.
+
+1. In the Control Panel, open **Settings**, then **ElevenLabs voices**.
+2. Paste your API key. Give the key "Text to Speech" and "Voices: Read" access.
+3. Click **Load my voices**, and choose a voice. To give one personality its own voice, open **A different voice for one personality**.
+4. Turn on **Use ElevenLabs voices**, and click **Hear it**.
+
+Each spoken line uses ElevenLabs characters. The coach saves each line in `cache\voice`, so a repeated line uses no characters. If ElevenLabs is slow or gives an error, the Windows voice speaks the line. If the key is wrong or the characters run out, the coach uses the Windows voice until it restarts. The key goes into `secrets.yaml`.
 
 ## Run the tests
 
-Run `python -m pytest -q`. The tests use synthetic frames and do not need Valorant or Tesseract.
+Run `python -m pytest -q`. The tests use synthetic frames and a small set of real HUD pictures in `tests/data`. The tests do not need Valorant or Tesseract.
+
+## How the coach reads numbers
+
+The coach reads ammo, health, and the round score with its own digit reader (`vcoach/digits.py`). The digit reader compares the screen with stored digit shapes from real Valorant pictures. One read takes about 2 milliseconds, so the coach reads ammo and health 20 times each second. Tesseract reads only the words (banner and menus). To read numbers with Tesseract again, add `number_reader: tesseract` to `config.yaml`.
+
+The coach also reads two more things with the same method:
+
+- **"SWITCH PLAYER"** at the bottom left. The game shows it when you are dead and watch a teammate. The coach then counts a death and ignores the teammate's ammo and health.
+- **Valorant's Shooting Error stat** (Settings > Video > Stats > Shooting Error, Text Only). The stat shows the spread of each shot for about 0.1 seconds. A first shot above 1 degree means that you moved when you fired. In tests on two full games, standing shots showed 0.16 to 0.9 degrees and moving shots showed 1.9 to 7.4 degrees. Without the stat, the coach uses an optical-flow guess, which matched the stat for about 76% of bursts.
+
+The crosshair placement check is off by default (`checks.crosshair.enabled: false`). In tests on real videos, smokes, Cypher cages, and ability effects made false "enemies", so its tips were not reliable.

@@ -135,7 +135,7 @@
   <span class="pill" id="coachPill"><span class="dot"></span><span id="coachState">Coach stopped</span></span>
   <span class="spacer"></span>
   <select id="quickPers" title="Personality for this session" style="width:auto"></select>
-  <label class="pill" style="cursor:pointer" title="Saves every reading and pictures of this match to the recordings folder, for troubleshooting. About 100 to 200 MB for one Swiftplay match."><input type="checkbox" id="recChk" style="accent-color:var(--accent)"> Record match</label>
+  <span class="pill on" id="recPill" style="display:none" title="Turn this off on the Settings page">Recording the next match</span>
   <button class="btn primary" id="startBtn">&#9654; Start coach</button>
   <button class="btn" id="stopBtn" style="display:none">&#9632; Stop coach</button>
   <button class="btn ghost small" id="logBtn">Coach log</button>
@@ -277,7 +277,50 @@
           </div>
         </div>
       </div>
+      <div class="card">
+        <h2>ElevenLabs voices (optional)</h2>
+        <div class="srow">
+          <div><b>Use ElevenLabs voices</b>
+            <div class="note">ElevenLabs voices sound more human than Windows voices. You need an ElevenLabs account and an API key. Each spoken line uses ElevenLabs characters. The coach keeps a copy of each line, so a repeated line is free. If ElevenLabs does not answer, the Windows voice speaks.</div>
+          </div>
+          <div class="ctl"><label class="switch"><input type="checkbox" id="elOn"><span></span></label></div>
+        </div>
+        <div class="grid2" style="gap:24px; margin-top:12px">
+          <div>
+            <label class="f"><span>API key <b id="elKeyState"></b></span>
+              <input type="password" id="elKey" placeholder="Paste a new key here" autocomplete="off">
+              <span class="note">Get a key at elevenlabs.io: Developers &rarr; API keys. Give the key "Text to Speech" and "Voices: Read" access. The key goes into <code>secrets.yaml</code>.</span>
+            </label>
+            <div style="display:flex; gap:8px; flex-wrap:wrap">
+              <button class="btn primary" id="elLoad">Load my voices</button>
+            </div>
+            <p class="note" id="elInfo" style="margin-top:10px"></p>
+          </div>
+          <div>
+            <label class="f"><span>Voice for all personalities</span>
+              <select id="elVoice"><option value="">Click "Load my voices" first</option></select>
+            </label>
+            <details>
+              <summary class="note" style="cursor:pointer">A different voice for one personality</summary>
+              <div id="elPer" style="margin-top:8px"></div>
+            </details>
+            <div style="display:flex; gap:8px; margin-top:12px">
+              <button class="btn ok" id="elSave">Save ElevenLabs</button>
+              <button class="btn" id="elHear">Hear it</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div id="settingsForm"></div>
+      <div class="card">
+        <h2>Troubleshooting</h2>
+        <div class="srow">
+          <div><b>Record the next match</b>
+            <div class="note">Use this only when the coach misses rounds or reads wrong numbers. For the next time you click Start coach, the coach saves every reading it takes, with pictures of the screen, to the <code>recordings</code> folder. One Swiftplay match uses about 100 to 200 MB. The switch turns off again after that match. Delete old recordings when you do not need them.</div>
+          </div>
+          <div class="ctl"><label class="switch"><input type="checkbox" id="recSwitch"><span></span></label></div>
+        </div>
+      </div>
       <div style="display:flex; gap:8px; position: sticky; bottom: 0; padding: 12px 0; background: var(--bg)">
         <button class="btn ok" id="setSave">Save settings</button>
         <button class="btn" id="setReset">Undo changes</button>
@@ -360,7 +403,7 @@ function go(page) {
   if (page === "regions" && !$("editorFrame").src) $("editorFrame").src = "/editor";
   if (page === "home") refresh();
   if (page === "voice") loadVoice();
-  if (page === "settings") { loadSettings(); loadVoice(); }
+  if (page === "settings") { loadSettings(); loadVoice(); loadEleven(); }
   if (page === "reports") loadReports();
   if (page === "help") loadHelp();
   if (page === "ai") loadAI();
@@ -400,6 +443,7 @@ async function refresh() {
   ST = s;
   document.querySelectorAll(".wake").forEach((e) => (e.textContent = cap(s.wake_word)));
   renderCoachState(s.coach_running);
+  showRecord();
   renderChecklist(s);
   fillQuickPers(s);
 }
@@ -439,10 +483,19 @@ document.addEventListener("click", (e) => {
 // ---------- coach start / stop ----------
 function fillQuickPers(s) {
   const q = $("quickPers"), cur = q.value || s.personality;
-  q.innerHTML = s.personalities.map((p) => `<option value="${p.key}">${esc(p.name)}</option>`).join("") + `<option value="random">Random</option>`;
+  q.innerHTML = s.personalities.map((p) => `<option value="${p.key}">${esc(p.name)}</option>`).join("") + `<option value="random">Random</option><option value="mix">Mix</option>`;
   q.value = cur;
   q.disabled = s.coach_running;
 }
+function showRecord() {
+  const on = !!(ST && ST.record_next);
+  $("recPill").style.display = on ? "" : "none";
+  if ($("recSwitch")) $("recSwitch").checked = on;
+}
+$("recSwitch").onchange = async () => {
+  const r = await api("/api/record", { on: $("recSwitch").checked });
+  if (r) { if (ST) ST.record_next = r.record_next; showRecord(); toast(r.record_next ? "The next match will be recorded." : "Recording is off."); }
+};
 function renderCoachState(on) {
   $("coachPill").classList.toggle("on", on);
   $("coachState").textContent = on ? "Coach running" : "Coach stopped";
@@ -455,15 +508,19 @@ async function startCoach() {
     toast("Some parts are missing. Install them on the Home page first.", true, 5000);
     go("home"); return;
   }
-  const r = await api("/api/coach/start", { personality: $("quickPers").value, record: $("recChk").checked });
+  const recording = !!(ST && ST.record_next);
+  userStopped = false;
+  const r = await api("/api/coach/start", { personality: $("quickPers").value });
   if (!r) return;
-  toast($("recChk").checked ? "Coach started. This match is recorded." : "Coach started. Start Valorant now.");
-  $("recChk").checked = false;  // Recording is for one match only.
+  toast(recording ? "Coach started. This match is recorded." : "Coach started. Start Valorant now.");
+  if (ST) ST.record_next = false;  // Recording is for one match only.
+  showRecord();
   $("drawer").classList.add("open");
   renderCoachState(true); pollCoach();
 }
 $("startBtn").onclick = startCoach;
-$("stopBtn").onclick = async () => { await api("/api/coach/stop", {}); toast("Stopping the coach and saving the report…"); };
+let userStopped = false;
+$("stopBtn").onclick = async () => { userStopped = true; await api("/api/coach/stop", {}); toast("Stopping the coach and saving the report…"); };
 $("logBtn").onclick = () => $("drawer").classList.toggle("open");
 $("drawerClose").onclick = () => $("drawer").classList.remove("open");
 let polling = false;
@@ -474,7 +531,7 @@ async function pollCoach() {
     if (!c) break;
     setLog($("coachLog"), c.lines || []);
     renderCoachState(c.running);
-    if (!c.running) { if (c.code && c.code !== 0) toast("The coach stopped with an error. Open the coach log.", true, 6000); refresh(); break; }
+    if (!c.running) { if (c.code && c.code !== 0 && !c.stopped_by_user && !userStopped) toast("The coach stopped with an error. Open the coach log.", true, 6000); refresh(); break; }
     await new Promise((r) => setTimeout(r, 1500));
   }
   polling = false;
@@ -483,14 +540,14 @@ async function pollCoach() {
 // ---------- personality ----------
 function renderPersonalities() {
   if (!ST) return;
-  const cards = ST.personalities.concat([{ key: "random", name: "Random", description: "A different coach every match. It says who it is at the start." }]);
+  const cards = ST.personalities.concat([{ key: "random", name: "Random", description: "A different coach every match. It says who it is at the start." }, { key: "mix", name: "Mix", description: "A different coach every round. It does not say which one." }]);
   $("pgrid").innerHTML = cards.map((p) => `
     <div class="pcard ${p.key === ST.personality ? "sel" : ""}">
       <div class="name">${esc(p.name)} ${p.key === ST.personality ? '<span class="tag">Current</span>' : ""}</div>
       <div class="desc">${esc(p.description)}</div>
       <div class="row">
         <button class="btn small ${p.key === ST.personality ? "" : "primary"}" data-use="${p.key}" ${p.key === ST.personality ? "disabled" : ""}>Use this</button>
-        ${p.key !== "random" ? `<button class="btn small" data-hear="${p.key}">Hear it</button>` : ""}
+        ${!["random", "mix"].includes(p.key) ? `<button class="btn small" data-hear="${p.key}">Hear it</button>` : ""}
       </div>
     </div>`).join("");
 }
@@ -522,7 +579,7 @@ function parseJSON(r) { try { return JSON.parse((r?.lines || []).filter((l) => l
 $("rateDefault").onchange = () => { $("rateSel").disabled = $("rateDefault").checked; $("rateVal").textContent = $("rateDefault").checked ? "personality default" : `${$("rateSel").value} words per minute`; };
 $("rateSel").oninput = () => ($("rateVal").textContent = `${$("rateSel").value} words per minute`);
 $("voiceSave").onclick = async () => { if (await api("/api/voice", { voice_name: $("voiceSel").value, voice_rate: $("rateDefault").checked ? null : +$("rateSel").value })) { toast("Voice saved."); refresh(); } };
-$("voiceHear").onclick = async () => { await $("voiceSave").onclick(); const b = $("voiceHear"); b.disabled = true; b.textContent = "Playing…"; await runTask("preview", { quiet: true, personality: ST?.personality === "random" ? "calm" : ST?.personality }); b.disabled = false; b.textContent = "Hear it"; };
+$("voiceHear").onclick = async () => { await $("voiceSave").onclick(); const b = $("voiceHear"); b.disabled = true; b.textContent = "Playing…"; await runTask("preview", { quiet: true, personality: ["random", "mix"].includes(ST?.personality) ? "calm" : ST?.personality }); b.disabled = false; b.textContent = "Hear it"; };
 async function loadVoiceList(force) {
   if (force) voicesLoaded = false;
   if (voicesLoaded) return;
@@ -544,6 +601,61 @@ $("voiceMore").onclick = async () => {
   if (await api("/api/open_voice_settings", {})) toast("Windows voice settings opened. Add a voice, then click Refresh voice list.", false, 6000);
 };
 $("voiceRefresh").onclick = () => loadVoiceList(true);
+
+// ---------- ElevenLabs ----------
+let elVoices = null;
+function elOptions(list, first) {
+  return `<option value="">${first}</option>` + list.map((v) => `<option value="${esc(v.id)}">${esc(v.name)}${v.category ? " (" + esc(v.category) + ")" : ""}</option>`).join("");
+}
+function elFill() {
+  const e = ST?.eleven || {};
+  const list = elVoices || (e.voice_id ? [{ id: e.voice_id, name: "Saved voice" }] : []);
+  $("elVoice").innerHTML = elOptions(list, elVoices ? "Choose a voice" : 'Click "Load my voices" first');
+  $("elVoice").value = e.voice_id || "";
+  const per = (ST?.personalities || []).map((p) => {
+    const cur = (e.voices || {})[p.key] || "";
+    const opts = elOptions(list.concat(cur && !list.some((v) => v.id === cur) ? [{ id: cur, name: "Saved voice" }] : []), "Same as above");
+    return `<label class="f"><span>${esc(p.name)}</span><select data-elp="${p.key}">${opts}</select></label>`;
+  }).join("");
+  $("elPer").innerHTML = per;
+  document.querySelectorAll("[data-elp]").forEach((s) => (s.value = (e.voices || {})[s.dataset.elp] || ""));
+}
+function loadEleven() {
+  const e = ST?.eleven || {};
+  $("elOn").checked = !!e.enabled;
+  $("elKeyState").innerHTML = e.key_set ? '<span style="color:var(--ok)">saved</span>' : '<span style="color:var(--warn)">not set</span>';
+  elFill();
+}
+function elBody() {
+  const voices = {};
+  document.querySelectorAll("[data-elp]").forEach((s) => { if (s.value) voices[s.dataset.elp] = s.value; });
+  return { enabled: $("elOn").checked, key: $("elKey").value.trim(), voice_id: $("elVoice").value, voices };
+}
+$("elLoad").onclick = async () => {
+  const b = $("elLoad"); b.disabled = true; b.textContent = "Loading…";
+  const d = await api("/api/elevenlabs/voices", { key: $("elKey").value.trim() });
+  b.disabled = false; b.textContent = "Load my voices";
+  if (!d) return;
+  elVoices = d.voices;
+  const keep = elBody();
+  elFill();
+  if (keep.voice_id) $("elVoice").value = keep.voice_id;
+  let info = `${d.voices.length} voices found.`;
+  if (d.characters) info += ` Characters used this month: ${d.characters[0].toLocaleString()} of ${d.characters[1].toLocaleString()}.`;
+  $("elInfo").textContent = info;
+};
+$("elSave").onclick = async () => {
+  const body = elBody();
+  if (body.enabled && !body.voice_id && !Object.keys(body.voices).length) { toast("Choose a voice first.", true); return false; }
+  if (await api("/api/elevenlabs", body)) { $("elKey").value = ""; toast("ElevenLabs settings saved. They apply the next time the coach starts."); await refresh(); loadEleven(); return true; }
+  return false;
+};
+$("elHear").onclick = async () => {
+  if (!(await $("elSave").onclick())) return;
+  const b = $("elHear"); b.disabled = true; b.textContent = "Playing…";
+  await runTask("preview", { quiet: true, personality: ["random", "mix"].includes(ST?.personality) ? "calm" : ST?.personality });
+  b.disabled = false; b.textContent = "Hear it";
+};
 $("micSave").onclick = async () => { if (await api("/api/mic", { mic_device: $("micSel").value })) toast("Microphone saved."); };
 
 let listenTimer = null;
@@ -583,7 +695,7 @@ $("aiSave").onclick = async () => {
 };
 $("aiTest").onclick = async () => {
   await $("aiSave").onclick();
-  const p = ST?.personality === "random" ? "calm" : ST?.personality;
+  const p = ["random", "mix"].includes(ST?.personality) ? "calm" : ST?.personality;
   runTask("ai_test", { title: "Testing AI lines…", note: "Each line shows how long the AI took. The coach waits up to the AI wait time in Settings.", personality: p });
 };
 

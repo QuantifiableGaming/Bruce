@@ -3,6 +3,7 @@
 Usage:
   python main.py live                       Coach you while you play.
   python main.py live --personality random  Pick a new coach personality each match.
+  python main.py live --personality mix     Pick a new coach personality each round, with no announcement.
   python main.py personalities              List the coach personalities.
   python main.py voices                     List the Windows voices the coach can use.
   python main.py preview --personality mate Hear sample lines from a personality.
@@ -39,6 +40,7 @@ except ModuleNotFoundError as exc:
 import cv2
 
 from vcoach.capture import ScreenSource, VideoSource
+from vcoach.eleven import from_config as eleven_from_config
 from vcoach.personality import PersonalityPicker, available
 from vcoach.session import Session
 from vcoach.util import crop_box, load_yaml
@@ -98,10 +100,34 @@ def save_screenshot(frame, voice):
     voice.say("Screenshot saved.")
 
 
+class Tee:
+    """Writes everything the coach prints to the screen and to a log file."""
+
+    def __init__(self, stream, path):
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        self.stream = stream
+        self.file = open(path, "w", encoding="utf-8")
+
+    def write(self, text):
+        self.stream.write(text)
+        try:
+            self.file.write(text)
+            self.file.flush()
+        except (OSError, ValueError):
+            pass
+        return len(text)
+
+    def flush(self):
+        self.stream.flush()
+
+
 def run_live(cfg, args):
+    sys.stdout = Tee(sys.stdout, os.path.join("logs", "coach_log.txt"))
+    sys.stderr = sys.stdout   # Errors go to the same log.
+    print(f"Coach started {time.strftime('%Y-%m-%d %H:%M:%S')}")
     from vcoach.hud import HudReader, HudWorker
 
-    voice = Voice(silent=args.silent)
+    voice = Voice(silent=args.silent, eleven=None if args.silent else eleven_from_config(cfg))
     start_hotkey(cfg["coach"]["mute_hotkey"], voice.toggle_mute)
     session = Session(cfg, make_picker(cfg, args), voice, args.log,
                       banner_log=os.path.join("logs", "banner_reads.txt"))
@@ -115,26 +141,30 @@ def run_live(cfg, args):
         from vcoach.recorder import MatchRecorder
 
         recorder = MatchRecorder(cfg)
-    worker = HudWorker(HudReader(cfg), cfg["hud_rate_hz"], banner_every(cfg), recorder)
+    worker = HudWorker(HudReader(cfg), recorder)
     worker.start()
     source = ScreenSource(cfg["monitor"], cfg["fps"])
     print(f"Coach running. Press {cfg['coach']['mute_hotkey'].upper()} to mute. "
           f"Press {shot_key.upper()} to save a screenshot. Press Ctrl+C to stop.")
-    frames = 0
+    next_stop_check = 0.0
     try:
         while True:
-            frames += 1
-            if frames % 30 == 0 and stop_requested():
-                print("Stop requested by the control panel.")
-                break
+            if time.perf_counter() >= next_stop_check:
+                next_stop_check = time.perf_counter() + 0.5
+                if stop_requested():
+                    print("Stop requested by the control panel.")
+                    break
             t, frame = source.read()
             if shot.is_set():
                 shot.clear()
                 save_screenshot(frame, voice)
             worker.publish(t, frame)
             session.frame(t, frame)
-            for item in worker.drain():
-                session.hud(*item)
+            for kind, et, value in worker.drain():
+                if kind == "hud":
+                    session.hud(et, value[0], value[1], None, *value[2:4])
+                else:
+                    session.scene(kind, et, value)
             for text in drain(commands):
                 session.command(t, text)
     except KeyboardInterrupt:
@@ -142,11 +172,12 @@ def run_live(cfg, args):
     finally:
         worker.stop()
         if recorder:
-            worker.join(timeout=3)
+            worker.join(timeout=1.5)
             recorder.close()
         if listener:
             listener.stop()
         session.close()
+        print("Coach stopped.")
 
 
 def run_replay(cfg, args):
@@ -158,6 +189,11 @@ def run_replay(cfg, args):
     source = VideoSource(args.video)
     hud_every = max(1, round(source.fps / cfg["hud_rate_hz"]))
     b_every = banner_every(cfg)
+    from types import SimpleNamespace
+
+    from vcoach.hud import read_scene
+
+    scene_state = SimpleNamespace(last_score_t=None)
     i = hud_reads = 0
     started = time.perf_counter()
     while True:
@@ -166,8 +202,11 @@ def run_replay(cfg, args):
             break
         session.frame(t, frame)
         if i % hud_every == 0:
-            banner = reader.banner(frame) if hud_reads % b_every == 0 else None
-            session.hud(t, reader.ammo(frame), reader.health(frame), banner)
+            ammo, health = reader.ammo_health(frame)
+            session.hud(t, ammo, health, None, reader.spectating(frame), reader.shooting_error(frame))
+            if hud_reads % b_every == 0:
+                for kind, et, value in read_scene(reader, t, frame, scene_state):
+                    session.scene(kind, et, value)
             hud_reads += 1
         i += 1
     session.close()
@@ -176,7 +215,7 @@ def run_replay(cfg, args):
 
 def run_listen(cfg, args):
     """Voice command test without the game: prints what the recognizer hears and answers."""
-    voice = Voice(silent=args.silent)
+    voice = Voice(silent=args.silent, eleven=None if args.silent else eleven_from_config(cfg))
     session = Session(cfg, make_picker(cfg, args), voice)
     commands = queue.Queue()
     from vcoach.listen import WakeListener
@@ -205,12 +244,13 @@ def run_preview(cfg, args):
     from vcoach.personality import load
 
     choice = args.personality or cfg["coach"].get("personality", "calm")
-    if choice == "random":
+    if choice in ("random", "mix"):
         raise SystemExit("Preview one personality at a time, for example: --personality hype")
     lines = load(choice)
     v = lines.get("voice", {})
     voice = Voice(cfg["coach"].get("voice_rate") or v.get("rate", 180), silent=args.silent,
-                  voice_name=cfg["coach"].get("voice_name") or v.get("name_contains", ""))
+                  voice_name=cfg["coach"].get("voice_name") or v.get("name_contains", ""),
+                  eleven=None if args.silent else eleven_from_config(cfg), personality=choice)
     rng = random.Random()
     issue = rng.choice(list(lines["tips"]))
     print(f"Personality: {lines['name']} - {lines.get('description', '')}")
@@ -329,7 +369,7 @@ def run_ai_setup(cfg, args):
     set_config_value(args.config, ["ai", "provider"], provider)
     cfg = load_yaml(args.config)
     print()
-    if _ai_try(cfg, cfg["coach"].get("personality", "calm") if cfg["coach"].get("personality") != "random" else "calm", count=2):
+    if _ai_try(cfg, cfg["coach"].get("personality", "calm") if cfg["coach"].get("personality") not in ("random", "mix") else "calm", count=2):
         print("\nAI coach is ON. Start the coach as normal.")
     else:
         print("\nThe test did not work. The coach still runs with scripted lines until you fix the problem.")
@@ -337,7 +377,7 @@ def run_ai_setup(cfg, args):
 
 def run_ai_test(cfg, args):
     choice = args.personality or cfg["coach"].get("personality", "calm")
-    if choice == "random":
+    if choice in ("random", "mix"):
         choice = "calm"
     _ai_try(cfg, choice)
 
@@ -375,7 +415,8 @@ def run_calibrate(cfg, args):
         from vcoach.hud import HudReader
 
         reader = HudReader(cfg)
-        print(f"Ammo: {reader.ammo(frame)}  Health: {reader.health(frame)}  Banner: {reader.banner(frame)!r}")
+        print(f"Ammo: {reader.ammo(frame)}  Health: {reader.health(frame)}  Score: {reader.score(frame)}  "
+              f"Banner: {reader.banner(frame)!r}")
     except Exception as exc:  # Tesseract missing or not on PATH.
         print(f"OCR is not available: {exc}")
 
@@ -384,7 +425,7 @@ def main():
     p = argparse.ArgumentParser(description="Valorant screen coach")
     p.add_argument("--config", default="config.yaml")
     p.add_argument("--lines", help="Use a custom personality file instead of the personalities folder.")
-    p.add_argument("--personality", help="calm, hype, tough, mate, sassy or random. Overrides config.yaml.")
+    p.add_argument("--personality", help="calm, hype, tough, mate, sassy, savage, random or mix. Overrides config.yaml.")
     sub = p.add_subparsers(dest="mode", required=True)
 
     sub.add_parser("personalities")
@@ -432,6 +473,9 @@ def main():
     cal.add_argument("--out", default="calibration.png")
 
     args = p.parse_args()
+    from vcoach.util import ensure_config
+
+    ensure_config(args.config)  # Creates config.yaml the first time, and adds new settings after an update.
     if args.mode in ("editor", "panel"):
         run_editor(args, panel=args.mode == "panel")
         return
@@ -451,6 +495,7 @@ def main():
         for key, name, desc in available():
             print(f"{key:10} {name}: {desc}")
         print(f"{'random':10} Picks a different personality at the start of each match.")
+        print(f"{'mix':10} Picks a different personality each round. It does not say which one.")
     elif args.mode == "voices":
         if args.json:
             import json

@@ -113,7 +113,7 @@ def clean_line(text, max_words=25):
     """Make the reply safe to speak: one short line, no markdown, emoji, or quotes."""
     if not text:
         return None
-    text = text.strip().splitlines()[0] if text.strip() else ""
+    text = " ".join(text.split()) if max_words > 40 else (text.strip().splitlines()[0] if text.strip() else "")
     text = re.sub(r"[*_#`>\[\]]", "", text)
     text = "".join(ch for ch in text if ord(ch) < 0x2190 or ch in "’‘“”–—…")
     text = text.strip().strip('"“”\'').strip()
@@ -140,7 +140,7 @@ def system_prompt(lines, max_words):
 You speak through the player's headset between rounds. Your words are read aloud by text-to-speech.
 
 Rules:
-- Reply with one or two short sentences, {max_words} words or fewer in total.
+- Reply with short sentences, {max_words} words or fewer in total.
 - Plain spoken English only: no emoji, no lists, no markdown, no quotation marks, no stage directions.
 - Coach habits and mindset only: crosshair height, stopping before shooting, burst control, reload timing, composure.
 - Never give tactical calls: no enemy positions, sites, rotations, utility plans, economy or buy advice.
@@ -178,6 +178,11 @@ def build_request(kind, coach, lines, stats=None, issue=None, question=None, ext
         "reset": "The player is on a losing streak or lost a lead. Help them reset their mindset for the next round.",
         "credit": "The player just won a strong round. Give short praise.",
         "match_end": "The match is over. Give one genuine positive from the facts, and a short sign-off.",
+        "debrief": "The match is over. Give a short spoken debrief in three or four sentences: the result and score, "
+                   "one genuine positive from the facts, one habit to work on next match, and a sign-off.",
+        "agent_select": "The player is in agent select before a match. Say one short line to get them ready.",
+        "agent": "The player selected an agent in agent select. Say one short line about playing that agent's role "
+                 "with good habits. Use the agent name.",
         "answer": f"The player asked you: \"{question}\". Answer from the facts.",
     }.get(kind, "Say something short and useful.")
     return task + "\n\nFacts:\n" + "\n".join(f"- {f}" for f in facts)
@@ -208,16 +213,16 @@ class AIVoiceWriter:
     def wants(self, kind):
         return self.enabled and (self.kinds is None or kind in self.kinds)
 
-    def submit(self, system, user, fallback, on_done):
-        self.jobs.put((time.monotonic(), system, user, fallback, on_done))
+    def submit(self, system, user, fallback, on_done, max_words=None):
+        self.jobs.put((time.monotonic(), system, user, fallback, on_done, max_words or self.max_words))
 
     def _run(self):
         while True:
-            queued_at, system, user, fallback, on_done = self.jobs.get()
+            queued_at, system, user, fallback, on_done, max_words = self.jobs.get()
             text = None
             if time.monotonic() - queued_at < self.max_wait:
                 try:
-                    text = clean_line(self.client.complete(system, user), self.max_words)
+                    text = clean_line(self.client.complete(system, user), max_words)
                     self.last_error = None
                 except Exception as exc:
                     self.last_error = str(exc)

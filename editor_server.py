@@ -113,6 +113,8 @@ def test_regions(cfg, regions, frame, color=None):
         out["ammo"] = reader.ammo(frame)
         out["health"] = reader.health(frame)
         out["banner"] = reader.banner(frame)
+        score = reader.score(frame)
+        out["score"] = None if score is None else f"{score[0]}-{score[1]}"
     except Exception as exc:  # Tesseract missing or not on PATH.
         out["ocr_error"] = f"Text reading is not available: {exc}"
     detector = EnemyDetector(cfg)

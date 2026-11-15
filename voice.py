@@ -89,10 +89,12 @@ def _open_backend(start=0, backends=None):
 class Voice:
     """Speaks lines in its own thread, so the coach never waits for speech."""
 
-    def __init__(self, rate=185, silent=False, voice_name="", backends=None):
+    def __init__(self, rate=185, silent=False, voice_name="", backends=None, eleven=None, personality=None):
         self.rate = rate
         self.silent = silent
         self.voice_name = voice_name or ""
+        self.eleven = eleven              # An ElevenVoice, or None for the Windows voice only.
+        self.personality = personality    # Chooses the ElevenLabs voice.
         self.backends = backends
         self.muted = False
         self.q = queue.Queue()
@@ -106,6 +108,8 @@ class Voice:
         else:
             print(f"[voice] Speech engine: {backend.name}")
             self._apply(backend)
+        if self.eleven is not None:
+            print("[voice] ElevenLabs voices on. The Windows voice is the backup.")
         while True:
             item = self.q.get()
             try:
@@ -114,6 +118,8 @@ class Voice:
                 if isinstance(item, tuple):  # ("style", rate, name)
                     if backend is not None:
                         self._apply(backend)
+                    continue
+                if self._speak_eleven(item):
                     continue
                 while backend is not None:
                     try:
@@ -131,6 +137,24 @@ class Voice:
             finally:
                 self.q.task_done()
 
+    def _speak_eleven(self, text):
+        """Speak with ElevenLabs. Return False if the Windows voice must speak the line."""
+        if self.eleven is None:
+            return False
+        from .eleven import ElevenError, play_pcm
+
+        try:
+            play_pcm(self.eleven.audio(text, self.eleven.voice_for(self.personality), self.rate))
+            return True
+        except ElevenError as exc:
+            print(f"[voice] ERROR: {exc}")
+            if exc.fatal:
+                print("[voice] ElevenLabs is off until the coach restarts. The Windows voice speaks.")
+                self.eleven = None
+        except Exception as exc:
+            print(f"[voice] ERROR: could not play the ElevenLabs audio: {exc}")
+        return False
+
     def _apply(self, backend):
         try:
             backend.apply(self.rate, self.voice_name)
@@ -142,8 +166,10 @@ class Voice:
         if not self.silent:
             self.q.join()
 
-    def set_style(self, rate, voice_name=""):
+    def set_style(self, rate, voice_name="", personality=None):
         self.rate, self.voice_name = rate, voice_name or ""
+        if personality is not None:
+            self.personality = personality
         if not self.silent:
             self.q.put(("style", self.rate, self.voice_name))
 

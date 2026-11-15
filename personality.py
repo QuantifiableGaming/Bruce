@@ -4,7 +4,8 @@ import os
 from .util import load_yaml
 
 BASE = "calm"
-REQUIRED = ["reset", "credit", "focus", "focus_names", "tips", "match_good", "answers"]
+REQUIRED = ["reset", "credit", "focus", "focus_names", "tips", "match_good", "answers",
+            "agent_select", "agent_role", "agent_any", "debrief"]
 
 
 def _merge(base, extra):
@@ -37,18 +38,24 @@ def load(name, folder="personalities", path=None):
     missing = [k for k in REQUIRED if k not in lines]
     if missing:
         raise SystemExit(f"Personality file is missing: {', '.join(missing)}")
+    lines["key"] = name
     return lines
 
 
 class PersonalityPicker:
-    """Gives the personality for each match. "random" picks a new one every match."""
+    """Gives the personality for each match.
+
+    "random" picks a new personality every match and says its name.
+    "mix" picks a new personality every round and does not say its name.
+    """
 
     def __init__(self, choice, folder="personalities", path=None, pool=None, rng=None):
         import random
 
         self.folder = folder
         self.rng = rng or random.Random()
-        self.is_random = choice == "random" and path is None
+        self.is_mix = choice == "mix" and path is None
+        self.is_random = choice in ("random", "mix") and path is None
         self.last = None
         if self.is_random:
             names = [n for n, _, _ in available(folder)]

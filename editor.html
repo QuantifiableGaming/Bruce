@@ -166,7 +166,7 @@
 const INFO = {
   ammo:         { label: "Ammo",          color: "#ff4655", help: "Cover only the big magazine number at the bottom of the screen. Do not include the reserve ammo." },
   health:       { label: "Health",        color: "#3ddc84", help: "Cover only the health number at the bottom left of the centre HUD." },
-  banner:       { label: "Round banner",  color: "#ffd166", help: "Cover the area where ROUND WON and ROUND LOST appear. Make it a bit larger than the text." },
+  banner:       { label: "Round banner",  color: "#ffd166", help: "Cover the banner under the timer, where BUY PHASE, WON and LOST appear. Make it a bit larger than the text." },
   enemy_search: { label: "Enemy search",  color: "#4cc9f0", help: "The area around your crosshair where the coach looks for enemy outlines. Keep the yellow crosshair near its centre." },
   gun_ignore:   { label: "Gun area (ignored)", color: "#b8c0cc", help: "Cover your own gun and arms. The coach ignores enemy colours inside this box, so a coloured gun skin does not look like an enemy." },
 };
@@ -388,6 +388,7 @@ $("testBtn").onclick = async () => {
   else {
     html += row("Ammo", r.ammo ?? "not read", r.ammo != null);
     html += row("Health", r.health ?? "not read", r.health != null);
+    html += row("Score", r.score ?? "not on screen", true);
     html += row("Banner", r.banner || "no text (normal mid-round)", true);
   }
   const e = r.enemy;

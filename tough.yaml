@@ -9,48 +9,70 @@ voice:
   name_contains: ""
 
 reset:
-  - "Enough. Reset and do your job."
-  - "That round is over. Focus."
-  - "No excuses. Next round, play it right."
-  - "Discipline. Play the basics."
-  - "Losing streak. Tighten up."
-  - "Stop thinking about the score. Play the round."
-  - "Get your head straight. Go again."
-  - "Calm down and execute."
+- "Enough. Reset and do your job."
+- "That round is over. Focus."
+- "No excuses. Next round, play it right."
+- "Discipline. Play the basics."
+- "Losing streak. Tighten up."
+- "Stop thinking about the score. Play the round."
+- "Get your head straight. Go again."
+- "Calm down and execute."
 
+- Reset. Now.
+- Stop tilting. Play the round.
+- Basics. Crosshair, stop, shoot.
+- The last round is gone. Work.
+- Losing is not an excuse. Focus.
+- Breathe. Then do your job.
 credit:
-  - "Good. That is the standard."
-  - "Solid. Do it again."
-  - "That is how it is done."
-  - "Acceptable. Now repeat it."
-  - "Clean work. Stay on it."
-  - "Good round. Do not relax."
+- "Good. That is the standard."
+- "Solid. Do it again."
+- "That is how it is done."
+- "Acceptable. Now repeat it."
+- "Clean work. Stay on it."
+- "Good round. Do not relax."
 
+- Good. Again.
+- That is the level. Hold it.
+- Correct. Keep working.
+- Solid round. No celebrating.
+- Better. Stay sharp.
+- That was discipline. More of it.
 focus:
-  - "One thing this round: {focus}. No exceptions."
-  - "Your only job now is {focus}."
-  - "Fix it. {focus}. Go."
+- "One thing this round: {focus}. No exceptions."
+- "Your only job now is {focus}."
+- "Fix it. {focus}. Go."
 
 tips:
   crosshair_low:
-    - "Crosshair is low. Head level. Every angle."
-    - "Your aim is too low. Fix it now."
-    - "Head height. You know this."
+  - "Crosshair is low. Head level. Every angle."
+  - "Your aim is too low. Fix it now."
+  - "Head height. You know this."
+  - Crosshair up. Head height. Always.
+  - You aim at chests. Aim at heads.
   crosshair_high:
-    - "Crosshair is high. Bring it down."
-    - "Aim is above the heads. Fix it."
+  - "Crosshair is high. Bring it down."
+  - "Aim is above the heads. Fix it."
+  - Too high. Head level.
+  - Lower your aim. Now.
   moving_shots:
-    - "You are shooting on the move. Stop. Then shoot."
-    - "Counter-strafe. Every first shot."
-    - "Feet still before you fire. No exceptions."
+  - "You are shooting on the move. Stop. Then shoot."
+  - "Counter-strafe. Every first shot."
+  - "Feet still before you fire. No exceptions."
+  - Stop. Then shoot. Every time.
+  - Moving shots miss. Stand still.
   long_spray:
-    - "Too much spray. Burst."
-    - "Let go of the trigger. Short bursts."
-    - "Spraying at range loses fights. Burst it."
+  - "Too much spray. Burst."
+  - "Let go of the trigger. Short bursts."
+  - "Spraying at range loses fights. Burst it."
+  - Burst. Reset. Burst.
+  - You are wasting bullets. Short bursts.
   bad_reload:
-    - "You reloaded in a fight. Do not do that."
-    - "Reload when safe. Not before."
+  - "You reloaded in a fight. Do not do that."
+  - "Reload when safe. Not before."
 
+  - Cover first. Then reload.
+  - Never reload in the open.
 match_good:
   crosshair: "Match over. Your crosshair was at head height in {good} of {total} fights. Build on that."
   strafe: "Match over. You stopped before shooting in {good} of {total} fights. Build on that."
@@ -67,3 +89,47 @@ answers:
   unmuted: "Back."
   switched: "{name} mode."
   unknown: "Say it clearly."
+agent_select:
+- Agent select. Pick what you can play.
+- New match. No excuses this time.
+- Pick your agent. Then focus.
+- Match found. Discipline from round one.
+- Choose. Then do the basics right.
+agent_role:
+  duelist:
+  - '{agent}. You go first. Stop before you shoot.'
+  - '{agent}. Take space. No hesitation.'
+  initiator:
+  - '{agent}. Set your team up. Then win your fights.'
+  - '{agent}. Use your tools on time. Every round.'
+  controller:
+  - '{agent}. Stay alive. Your team needs you.'
+  - '{agent}. Patience. Do not die first.'
+  sentinel:
+  - '{agent}. Hold your position. Stay patient.'
+  - '{agent}. Do not overpeek. Hold.'
+agent_any:
+- '{agent}. Fine. Play it properly.'
+- '{agent}. Basics first.'
+debrief:
+  victory:
+  - Victory. {won} to {lost}. Good.
+  - Won {won} to {lost}. That is the standard.
+  - A win. {won} to {lost}. Do not relax.
+  defeat:
+  - Defeat. {won} to {lost}. Learn from it.
+  - Lost {won} to {lost}. Not good enough yet.
+  - '{won} to {lost}. A loss. Fix it next match.'
+  draw:
+  - A draw. {won} to {lost}.
+  unknown:
+  - Match over.
+  good_crosshair: Crosshair at head height in {good} of {total} fights. Acceptable.
+  good_strafe: You stopped before shooting in {good} of {total} fights. Keep that.
+  good_credit: "Strong rounds: {count}."
+  work_on: 'Next match: {focus}. No exceptions.'
+  clean: No repeated mistakes. Keep it that way.
+  signoff:
+  - Read the report.
+  - Report saved. Go again.
+  - Rest. Then back to work.

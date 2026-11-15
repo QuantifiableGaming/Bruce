@@ -16,7 +16,7 @@ from vcoach.vision import EnemyDetector, MotionMeter  # noqa: E402
 
 from vcoach.util import load_yaml  # noqa: E402
 
-CFG = load_yaml(os.path.join(ROOT, "config.yaml"))
+CFG = load_yaml(os.path.join(ROOT, "config.default.yaml"))
 CFG["banner_confirm_reads"] = 1  # Most tests send each banner one time. The confirm rule has its own test.
 os.chdir(ROOT)
 from vcoach.personality import PersonalityPicker, available, load  # noqa: E402
@@ -333,7 +333,7 @@ def test_write_regions_keeps_comments(tmp_path):
     from vcoach.editor_server import validate_regions, write_regions
 
     cfg = tmp_path / "config.yaml"
-    shutil.copy(os.path.join(ROOT, "config.yaml"), cfg)
+    shutil.copy(os.path.join(ROOT, "config.default.yaml"), cfg)
     before = cfg.read_text(encoding="utf-8")
     write_regions(str(cfg), {"ammo": [0.5, 0.9, 0.03, 0.04]})
     after = cfg.read_text(encoding="utf-8")
@@ -356,7 +356,7 @@ def test_editor_server_endpoints(tmp_path):
 
     from vcoach.editor_server import EditorServer
 
-    shutil.copy(os.path.join(ROOT, "config.yaml"), tmp_path / "config.yaml")
+    shutil.copy(os.path.join(ROOT, "config.default.yaml"), tmp_path / "config.yaml")
     shutil.copy(os.path.join(ROOT, "editor.html"), tmp_path / "editor.html")
     cv2.imwrite(str(tmp_path / "calibration_raw.png"), np.zeros((1080, 1920, 3), np.uint8))
     srv = EditorServer(str(tmp_path), port=8790)
@@ -576,7 +576,7 @@ def test_write_enemy_color(tmp_path):
     from vcoach.editor_server import write_enemy_color
 
     cfg = tmp_path / "config.yaml"
-    shutil.copy(os.path.join(ROOT, "config.yaml"), cfg)
+    shutil.copy(os.path.join(ROOT, "config.default.yaml"), cfg)
     write_enemy_color(str(cfg), "purple")
     assert load_yaml(str(cfg))["enemy_highlight"]["color"] == "purple"
     try:
@@ -594,7 +594,7 @@ def test_gun_side_and_mirror(tmp_path):
     assert mirror_region([0.58, 0.5, 0.42, 0.5]) == [0.0, 0.5, 0.42, 0.5]
     assert mirror_region(mirror_region([0.6, 0.5, 0.3, 0.4])) == [0.6, 0.5, 0.3, 0.4]
     cfg = tmp_path / "config.yaml"
-    shutil.copy(os.path.join(ROOT, "config.yaml"), cfg)
+    shutil.copy(os.path.join(ROOT, "config.default.yaml"), cfg)
     write_gun_side(str(cfg), "left")
     assert load_yaml(str(cfg))["gun_side"] == "left"
 
@@ -660,9 +660,10 @@ def test_panel_endpoints(tmp_path):
 
     from vcoach.panel_server import PanelServer
 
-    for name in ("config.yaml", "editor.html", "panel.html", "main.py", "QUICKSTART.md", "README.md",
+    for name in ("config.default.yaml", "editor.html", "panel.html", "main.py", "QUICKSTART.md", "README.md",
                  "secrets.example.yaml", "requirements.txt"):
         shutil.copy(os.path.join(ROOT, name), tmp_path / name)
+    shutil.copy(os.path.join(ROOT, "config.default.yaml"), tmp_path / "config.yaml")
     for folder in ("vcoach", "personalities", "icons"):
         shutil.copytree(os.path.join(ROOT, folder), tmp_path / folder,
                         ignore=shutil.ignore_patterns("__pycache__"))
@@ -860,7 +861,7 @@ def test_no_rounds_from_menus_without_hud(capsys):
     cfg = dict(CFG, banner_confirm_reads=2)
     an = Analyzer(cfg)
     for i in range(6):                                                   # lobby: result words, no HUD numbers
-        assert an.on_hud(i * 0.5, None, None, "WIN 5 ROUNDS") == []
+        assert an.on_hud(i * 0.5, None, None, "ROUNDS WON 5") == []
     assert "Ignored (menu or lobby)" in capsys.readouterr().out
     an.on_hud(100, 25, 100, None)                                        # match starts: HUD is readable
     assert an.on_hud(110, 24, 100, "ROUND WON") == []
@@ -908,20 +909,21 @@ def test_match_recorder(tmp_path):
 
     rec = MatchRecorder(CFG, root=str(tmp_path), full_every_s=0.0)
     frame = np.full((1080, 1920, 3), 90, np.uint8)
-    rec.save(frame, 25, 100, True, "ROUND WON")
-    rec.save(frame, None, 100, False, None)
-    rec.save(frame, 24, None, True, "NOISE TEXT")
-    rec.save(frame, 24, 100, True, "ROUND WON")
+    rec.save_hud(frame, 25, 100)
+    rec.save_hud(frame, None, 100)
+    rec.save_scene(frame, {"score": (0, 0), "banner": "BUY PHASE PRESS BUY"})
+    rec.save_scene(frame, {"score": None, "banner": None, "screen": "PEARL SWIFTPLAY", "agent": "SENTINEL CYPHER"})
+    rec.save_scene(frame, {"score": (1, 0), "banner": "WON ENEMY TEAM ELIMINATED"})
     rec.close()
-    rec.save(frame, 1, 1, True, "LATE")                      # ignored after close
+    rec.save_hud(frame, 1, 1)                                 # ignored after close
     folder = rec.folder
     rows = open(os.path.join(folder, "readings.csv"), encoding="utf-8").read().splitlines()
-    assert len(rows) == 5 and "ROUND WON" in rows[1]
+    assert len(rows) == 6 and "0-0" in rows[3] and "PEARL SWIFTPLAY" in rows[4]
     assert len(os.listdir(os.path.join(folder, "banner"))) == 3
-    assert len(os.listdir(os.path.join(folder, "hud"))) == 3
-    assert len(os.listdir(os.path.join(folder, "full"))) == 4
+    assert len(os.listdir(os.path.join(folder, "full"))) == 3
     summary = open(os.path.join(folder, "summary.txt"), encoding="utf-8").read()
-    assert "Ammo read: 75%" in summary and "WON: 2" in summary and "NOISE TEXT" in summary
+    assert "Ammo read: 50%" in summary and "Score read: 67%" in summary and "1-0" in summary
+    assert "WON ENEMY TEAM ELIMINATED" in summary
 
 
 def test_panel_passes_record_flag(tmp_path):
@@ -940,3 +942,419 @@ def test_panel_passes_record_flag(tmp_path):
     srv.run = fake_run
     srv.start_coach("sassy", record=True)
     assert seen["args"] == ["live", "--personality", "sassy", "--record"]
+    srv.coach = None
+    srv.start_coach("sassy")
+    assert seen["args"] == ["live", "--personality", "sassy"]
+
+
+# ---------- settings survive updates ----------
+
+def test_ensure_config_creates_and_keeps_user_settings(tmp_path):
+    import shutil
+
+    from vcoach.util import ensure_config, set_config_value
+
+    default = tmp_path / "config.default.yaml"
+    shutil.copy(os.path.join(ROOT, "config.default.yaml"), default)
+    cfg = tmp_path / "config.yaml"
+    assert ensure_config(str(cfg))                          # first start: created
+    assert load_yaml(str(cfg))["regions"]["ammo"] == CFG["regions"]["ammo"]
+    set_config_value(str(cfg), ["coach", "personality"], "sassy")
+    set_config_value(str(cfg), ["regions", "ammo"], [0.66, 0.92, 0.03, 0.04])
+    assert not ensure_config(str(cfg))                      # nothing new: no change
+
+    # An update brings a new setting and a changed default. The player's values stay.
+    text = default.read_text(encoding="utf-8").replace("personality: calm", "personality: hype")
+    default.write_text(text + "\nnew_feature:\n  enabled: true\n", encoding="utf-8")
+    assert ensure_config(str(cfg))
+    after = load_yaml(str(cfg))
+    assert after["new_feature"]["enabled"] is True
+    assert after["coach"]["personality"] == "sassy" and after["regions"]["ammo"] == [0.66, 0.92, 0.03, 0.04]
+
+
+# ---------- score-based match tracking (built from a real recorded match) ----------
+
+def test_match_tracker_follows_the_score():
+    from vcoach.trackers import MatchTracker, find_agent
+
+    assert find_agent("SENTINEL BYPHER") == ("Cypher", "sentinel")     # a real misread from agent select
+    assert find_agent("MAP BREEZE") == (None, None)
+    m = MatchTracker()
+    ev = []
+    ev += m.on_screen(80, "PEARL SWIFTPLAY")
+    ev += m.on_agent(81, "SENTINEL BYPHER") + m.on_agent(85, "SENTINEL BYPHER") + m.on_agent(90, "SENTINEL CYPHER")
+    ev += m.on_score(240, (0, 0)) + m.on_score(241, (0, 0))
+    ev += m.on_banner(242, "BUY PHASE PRESS BUY")
+    assert m.in_buy(243) and not m.in_buy(260)
+    ev += m.on_score(346, (0, 1)) + m.on_score(347, None) + m.on_score(348, (0, 1))    # one unreadable frame
+    ev += m.on_score(360, (0, 1))
+    ev += m.on_score(500, (1, 1)) + m.on_score(501, (1, 1)) + m.on_banner(503, "CLUTCH") + m.on_score(506, (1, 1))
+    ev += m.on_score(600, (7, 1))                                       # one wrong read does not count
+    ev += m.on_score(601, (1, 1))
+    ev += m.on_score(700, (2, 1)) + m.on_score(700.5, (2, 1)) + m.on_banner(701, "TEAM ACE")
+    ev += m.on_screen(720, "VICTORY")
+    assert not m.on_screen(722, "VICTORY PROGRESS ROUNDS WON")           # only one match end
+    names = [e[0] for e in ev]
+    assert names == ["agent_select", "agent", "match_start", "round_end", "round_end", "round_end", "match_end"]
+    assert ev[1][1] == {"agent": "Cypher", "role": "sentinel"}
+    assert ev[3][1] == {"won": False, "credit": None, "score": (0, 1)}
+    assert ev[4][1] == {"won": True, "credit": "CLUTCH", "score": (1, 1)}
+    assert ev[5][1] == {"won": True, "credit": "TEAM ACE", "score": (2, 1)}
+    assert ev[6][1] == {"result": "VICTORY", "score": (2, 1)}
+
+
+def test_match_tracker_syncs_and_resets():
+    from vcoach.trackers import MatchTracker
+
+    m = MatchTracker()
+    ev = m.on_score(1, (3, 4)) + m.on_score(2, (3, 4))                   # coach started mid-match
+    assert ev == [("match_start", {"score": (3, 4)})]
+    assert not m.on_score(50, (5, 4)) + m.on_score(51, (5, 4)) + m.on_score(52, (5, 4))   # a jump needs 4 reads
+    assert m.on_score(53, (5, 4)) == [("score_sync", {"score": (5, 4)})]
+    ev = []
+    for t in (300, 301, 302, 303):                                       # next match
+        ev += m.on_score(t, (0, 0))
+    assert [e[0] for e in ev] == ["match_reset", "match_start"]
+
+
+def test_match_tracker_ignores_misread_scores():
+    """Score reads from a real match, with the wrong reads the reader made."""
+    from vcoach.trackers import MatchTracker
+
+    reads = [(98, (0, 0)), (100, (0, 0)), (107, (0, 4)), (108, (0, 4)), (109, (0, 0)), (180, (0, 4)), (184, (0, 0)),
+             (213, (1, 0)), (215, (1, 0)), (258, (4, 0)), (259, (1, 0)), (291, (2, 1)), (295, (1, 1)), (297, (1, 1)),
+             (344, (13, 1)), (348, (1, 1)), (361, (2, 1)), (363, (2, 1)), (390, (2, 4)), (392, (2, 1)),
+             (422, (2, 2)), (424, (2, 2)), (425, (2, 3)), (426, (2, 3)), (427, (2, 2)),   # too soon after a change
+             (518, (2, 3)), (520, (2, 3)), (589, (2, 4)), (591, (2, 4)), (653, (2, 5)), (655, (2, 5)), (670, (2, 5))]
+    m = MatchTracker()
+    ev = []
+    for t, score in reads:
+        ev += m.on_score(t, score)
+    assert [e[0] for e in ev] == ["match_start"] + ["round_end"] * 7
+    assert [e[1]["won"] for e in ev[1:]] == [True, False, True, False, False, False, False]
+    assert ev[-1][1]["score"] == (2, 5)
+
+
+def test_session_full_match_with_score(tmp_path):
+    s, v = make_session("sassy")
+    s.report.out_dir = str(tmp_path)
+    s.scene("screen", 80, "PEARL SWIFTPLAY")
+    assert v.said[-1] in load("sassy")["agent_select"]
+    s.scene("agent", 81, "SENTINEL CYPHER")
+    s.scene("agent", 90, "SENTINEL CYPHER")
+    assert "Cypher" in v.said[-1]
+    for t in (240, 241):
+        s.scene("score", t, (0, 0))
+    s.command(245, "what's the score")                                   # first round, not buy phase: queued
+    assert v.said[-1] == load("sassy")["answers"]["queued"]
+    for t in (300, 301, 306):
+        s.scene("score", t, (0, 1))
+    assert s.coach.won == 0 and s.coach.lost == 1
+    assert "0" in v.said[-1] and "1" in v.said[-1]                        # the queued score answer
+    s.scene("banner", 320, "MATCH POINT PRESS BUY")
+    s.command(321, "what's the score")                                   # buy phase: answered now
+    assert "won 0 and lost 1" in v.said[-1].lower() or "0" in v.said[-1]
+    for t in (400, 401, 406):
+        s.scene("score", t, (1, 1))
+    s.scene("screen", 500, "VICTORY")
+    debrief = v.said[-1]
+    assert "1 to 1" in debrief
+    assert os.listdir(tmp_path) and s.coach.won == 0                      # report saved, coach reset
+    text = open(os.path.join(tmp_path, os.listdir(tmp_path)[0]), encoding="utf-8").read()
+    assert "Result: VICTORY 1-1" in text
+
+
+def test_debrief_and_agent_lines_for_every_personality():
+    for key, _, _ in available():
+        coach = Coach(load(key), CFG, random.Random(1))
+        assert coach.pregame()
+        for role in ("duelist", "initiator", "controller", "sentinel", None):
+            assert "Jett" in coach.agent_line("Jett", role)
+        coach.round_end(True, "ACE", RoundStats(long_sprays=3), score=(1, 0))
+        coach.round_end(False, None, RoundStats(crosshair_offsets=[1, 2, 3, 2, 1]), score=(1, 1))
+        for result in ("VICTORY", "DEFEAT", "DRAW", None):
+            text = coach.debrief([RoundStats(crosshair_offsets=[1, 2, 3, 2, 1])], result, (1, 1))
+            assert "{" not in text and "short bursts" in text
+            assert result is None or "1 to 1" in text
+
+
+def test_hud_worker_sends_events():
+    from vcoach.hud import HudWorker
+
+    class FakeReader:
+        def ammo_health(self, frame):
+            return 25, 100
+
+        def score(self, frame):
+            return (2, 1) if frame == "game" else None
+
+        def banner(self, frame):
+            return "BUY PHASE" if frame == "game" else None
+
+        def top_left(self, frame):
+            return "PEARL SWIFTPLAY"
+
+        def agent_panel(self, frame):
+            return "SENTINEL CYPHER"
+
+    saved = []
+
+    class FakeRecorder:
+        def save_hud(self, frame, ammo, health, spectating=None, shot_error=None):
+            saved.append("hud")
+
+        def save_scene(self, frame, values):
+            saved.append(sorted(values))
+
+    w = HudWorker(FakeReader(), FakeRecorder(), min_period=0.01)
+    w.start()
+    w.publish(1.0, "game")
+    _time.sleep(0.3)
+    w.publish(2.0, "menu")
+    _time.sleep(0.3)
+    w.stop()
+    w.join(1)
+    kinds = [(k, v) for k, _, v in w.drain()]
+    assert ("hud", (25, 100, None, None)) in kinds and ("score", (2, 1)) in kinds and ("banner", "BUY PHASE") in kinds
+    assert ("screen", "PEARL SWIFTPLAY") not in kinds     # a score was read less than 3 seconds before
+    assert "hud" in saved and ["banner", "score"] in saved
+
+
+# ---------- fast digit reader ----------
+
+def _digit_pictures():
+    import glob
+    folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+    for path in sorted(glob.glob(os.path.join(folder, "hud_*.png"))):
+        health, ammo = os.path.basename(path).split("_")[1:3]
+        yield path, (None if health == "None" else int(health)), (None if ammo == "None" else int(ammo))
+
+
+def test_digit_reader_reads_real_hud_pictures():
+    import cv2
+    from vcoach.digits import DigitReader
+    reader = DigitReader()
+    count = 0
+    for path, health, ammo in _digit_pictures():
+        img = cv2.imread(path)
+        # Each picture has the health box (78 px), a gap (8 px), then the ammo box.
+        assert reader.read(img[:, :78], 34)[0] == health, path
+        assert reader.read(img[:, 86:], 34)[0] == ammo, path
+        count += 1
+    assert count >= 20
+
+
+def test_digit_reader_reads_other_screen_sizes():
+    import cv2
+    from vcoach.digits import DigitReader
+    reader = DigitReader()
+    for path, health, ammo in _digit_pictures():
+        img = cv2.imread(path)
+        for scale in (0.667, 1.333, 2.0):
+            method = cv2.INTER_AREA if scale < 1 else cv2.INTER_CUBIC
+            big = cv2.resize(img[:, 86:], None, fx=scale, fy=scale, interpolation=method)
+            got = reader.read(big, 34 * scale)[0]
+            assert got in (ammo, None), (path, scale, got)
+
+
+def test_digit_reader_returns_none_for_no_digits():
+    import numpy as np
+    from vcoach.digits import DigitReader
+    reader = DigitReader()
+    rng = np.random.default_rng(3)
+    assert reader.read(np.zeros((52, 70, 3), np.uint8), 34) == (None, 0.0)
+    assert reader.read(np.full((52, 70, 3), 255, np.uint8), 34) == (None, 0.0)
+    for _ in range(20):
+        noise = rng.integers(0, 255, (52, 70, 3)).astype(np.uint8)
+        assert reader.read(noise, 34)[0] is None
+
+
+def test_digit_reader_is_fast():
+    import time
+    import cv2
+    from vcoach.digits import DigitReader
+    reader = DigitReader()
+    img = cv2.imread(next(_digit_pictures())[0])
+    start = time.perf_counter()
+    for _ in range(50):
+        reader.read(img[:, 86:], 34)
+    assert (time.perf_counter() - start) / 50 < 0.02
+
+
+# ---------- mix personality ----------
+
+def test_mix_changes_personality_each_round_with_no_announcement():
+    s, v = make_session("mix")
+    assert s.picker.is_mix
+    assert not any("Your coach this match" in line for line in v.said)
+    names = [s.coach.lines["name"]]
+    for t in (240, 241):
+        s.scene("score", t, (0, 0))
+    score = [0, 0]
+    t = 300
+    for n in range(6):
+        score[n % 2] += 1
+        for dt in (0, 1, 6):
+            s.scene("score", t + dt, tuple(score))
+        names.append(s.coach.lines["name"])
+        t += 60
+    assert s.coach.round_no == 6
+    assert all(a != b for a, b in zip(names, names[1:]))      # a new personality after every round
+    assert len(set(names)) >= 3
+    assert not any("Your coach" in line or name in line for line in v.said for name in set(names))
+
+
+def test_bruce_can_switch_to_mix():
+    from vcoach.commands import parse
+    assert parse("switch to mix", ["calm", "hype"]) == ("personality", "mix")
+
+
+# ---------- death without a health 0 reading ----------
+
+def test_death_when_hud_hides_after_damage():
+    from vcoach.checks import Analyzer
+    a = Analyzer(CFG)
+    t = 100.0
+    for hp in (100, 100, 60, 60, 20, 20):
+        a.on_hud(t, 25, hp)
+        t += 0.07
+    assert a.health.alive
+    for _ in range(25):            # 1.75 s with no ammo and no health
+        a.on_hud(t, None, None)
+        t += 0.07
+    assert not a.health.alive and a.round.deaths == 1
+
+
+def test_no_death_when_hud_hides_with_no_damage():
+    from vcoach.checks import Analyzer
+    a = Analyzer(CFG)
+    t = 100.0
+    for _ in range(6):
+        a.on_hud(t, 25, 100)
+        t += 0.07
+    for _ in range(60):            # A menu or the map: no damage first
+        a.on_hud(t, None, None)
+        t += 0.07
+    assert a.health.alive and a.round.deaths == 0
+
+
+# ---------- ElevenLabs ----------
+
+def test_eleven_off_by_default_and_without_key(tmp_path, monkeypatch):
+    from vcoach import eleven
+    monkeypatch.delenv("ELEVENLABS_API_KEY", raising=False)
+    assert eleven.from_config({"elevenlabs": {"enabled": False}}, quiet=True) is None
+    cfg = {"elevenlabs": {"enabled": True, "voice_id": "abc"}, "ai": {"secrets_file": str(tmp_path / "none.yaml")}}
+    assert eleven.from_config(cfg, quiet=True) is None
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "k")
+    assert eleven.from_config(cfg, quiet=True) is not None
+
+
+def test_eleven_voice_per_personality_and_cache(tmp_path, monkeypatch):
+    from vcoach import eleven
+    calls = []
+
+    def fake_request(url, key, body=None, timeout=8):
+        calls.append((url, body))
+        return b"\x01\x00" * 500
+
+    monkeypatch.setattr(eleven, "_request", fake_request)
+    v = eleven.ElevenVoice({"voice_id": "base", "voices": {"savage": "mean"}}, "k", cache_dir=str(tmp_path))
+    assert v.voice_for("calm") == "base" and v.voice_for("savage") == "mean"
+    v.audio("Nice shot.", "base", 180)
+    v.audio("Nice shot.", "base", 180)      # From the cache: no second request
+    assert len(calls) == 1
+    assert "/text-to-speech/base?output_format=pcm_22050" in calls[0][0]
+    assert calls[0][1]["voice_settings"]["speed"] == 1.0
+    assert eleven.speed_from_rate(300) == 1.2 and eleven.speed_from_rate(100) == 0.7
+
+
+def test_voice_uses_windows_when_eleven_fails():
+    from vcoach.eleven import ElevenError
+    from vcoach.voice import Voice
+
+    spoken = []
+
+    class FakeBackend:
+        name = "fake"
+
+        def apply(self, rate, name):
+            pass
+
+        def speak(self, text):
+            spoken.append(text)
+
+    class BadEleven:
+        def voice_for(self, p):
+            return "x"
+
+        def audio(self, text, voice_id, rate):
+            raise ElevenError("HTTP 401", fatal=True)
+
+    v = Voice(backends=[FakeBackend], eleven=BadEleven())
+    v.say("one")
+    v.say("two")
+    v.wait()
+    assert spoken == ["one", "two"] and v.eleven is None
+
+
+def test_personality_has_key():
+    from vcoach.personality import load
+    assert load("savage")["key"] == "savage"
+
+
+def test_spectating_counts_a_death_and_ignores_the_teammate_hud():
+    from vcoach.checks import Analyzer
+    a = Analyzer(CFG)
+    t = 100.0
+    for _ in range(4):
+        a.on_hud(t, 25, 100)
+        t += 0.07
+    a.on_hud(t, 25, 100, spectating=True)       # One-shot headshot: no damage reading first
+    assert not a.health.alive and a.round.deaths == 1
+    for ammo in (30, 28, 26, 24, 22):            # The teammate shoots
+        t += 0.07
+        a.on_hud(t, ammo, 80, spectating=True)
+    assert a.round.bursts == 0 and a.round.deaths == 1
+
+
+def test_switch_player_detector_on_real_pictures():
+    import cv2
+    import numpy as np
+    from vcoach.digits import DigitReader
+    reader = DigitReader()
+    folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+    dead = cv2.imread(os.path.join(folder, "spectate_yes.png"))
+    alive = cv2.imread(os.path.join(folder, "spectate_no.png"))
+    frame = np.zeros((1080, 1920, 3), np.uint8)
+    frame[835:895, 80:330] = dead
+    assert reader.spectating(frame) is True
+    frame[835:895, 80:330] = alive
+    assert reader.spectating(frame) is False
+    small = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_AREA)
+    assert reader.spectating(small) is False
+
+
+def test_shooting_error_stat_decides_moving_shots():
+    from vcoach.checks import Analyzer
+    a = Analyzer(CFG)
+    t = 100.0
+    # Stat on screen. Burst 1: still (0.25 degrees). Burst 2: moving (2.5 degrees).
+    for ammo, err in [(25, 0.0), (25, 0.0), (24, 0.25), (23, 0.25), (23, 0.0), (23, 0.0), (23, 0.0),
+                      (23, 0.0), (23, 0.0), (22, 2.5), (21, 2.5), (21, 0.0), (21, 0.0), (21, 0.0), (21, 0.0)]:
+        a.on_frame(t, 5.0, {"visible": False, "head_offset": None})   # The motion guess says "moving" every time
+        a.on_hud(t, ammo, 100, shot_error=err)
+        t += 0.07
+    assert a.round.bursts == 2 and a.round.judged_bursts == 2 and a.round.moving_bursts == 1
+
+
+def test_shooting_error_reader_on_real_picture():
+    import cv2
+    import numpy as np
+    from vcoach.digits import DigitReader
+    folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+    frame = np.zeros((1080, 1920, 3), np.uint8)
+    frame[0:26, 0:400] = cv2.imread(os.path.join(folder, "shooting_error_190.png"))
+    reader = DigitReader()
+    assert reader.shooting_error(frame) == 1.9
+    assert DigitReader().shooting_error(np.zeros((1080, 1920, 3), np.uint8)) is None

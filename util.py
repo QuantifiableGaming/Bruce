@@ -48,3 +48,53 @@ def set_config_value(path, keys, value):
     with open(tmp, "w", encoding="utf-8") as fh:
         y.dump(data, fh)
     os.replace(tmp, path)
+
+
+def ensure_config(path, default_path=None):
+    """Make sure the settings file exists and has every setting.
+
+    The first time, copy the default file. After an update, add settings that are
+    new in the default file. Settings the player already has never change.
+    """
+    import os
+    import shutil
+
+    from ruamel.yaml import YAML
+
+    default_path = default_path or os.path.join(os.path.dirname(os.path.abspath(path)), "config.default.yaml")
+    if not os.path.exists(default_path):
+        return False
+    if not os.path.exists(path):
+        shutil.copy(default_path, path)
+        text = open(path, encoding="utf-8").read().split("\n")
+        text = [line for line in text if not line.startswith(("# Valorant coach DEFAULT", "# Your own settings",
+                                                              "# the first time it starts"))]
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write("\n".join(text))
+        return True
+
+    y = YAML()
+    y.preserve_quotes = True
+    y.width = 4096
+    with open(path, encoding="utf-8") as fh:
+        mine = y.load(fh)
+    with open(default_path, encoding="utf-8") as fh:
+        default = y.load(fh)
+
+    def fill(target, source):
+        changed = False
+        for key, value in source.items():
+            if key not in target:
+                target[key] = value
+                changed = True
+            elif isinstance(value, dict) and isinstance(target[key], dict):
+                changed = fill(target[key], value) or changed
+        return changed
+
+    if mine is None or not fill(mine, default):
+        return False
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        y.dump(mine, fh)
+    os.replace(tmp, path)
+    return True

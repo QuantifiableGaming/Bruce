@@ -89,8 +89,11 @@ class Task:
     def running(self):
         return self.code is None
 
+    stopped_by_user = False
+
     def info(self, since=0):
         return {"id": self.id, "args": self.args, "running": self.running, "code": self.code,
+                "stopped_by_user": self.stopped_by_user,
                 "lines": self.lines[since:], "count": len(self.lines)}
 
 
@@ -104,6 +107,7 @@ class PanelServer(EditorServer):
         self.coach = None
         self.listen = None
         self.stop_file = os.path.join(root, ".coach_stop")
+        self.record_next = False   # Record the next coach session (set on the Settings page).
 
     # ---------- helpers ----------
     def cfg(self):
@@ -123,6 +127,23 @@ class PanelServer(EditorServer):
 
     def secrets_path(self):
         return os.path.join(self.root, str(self.cfg().get("ai", {}).get("secrets_file", "secrets.yaml")))
+
+    def _eleven_status(self, cfg, secrets):
+        from .eleven import api_key
+
+        el = cfg.get("elevenlabs") or {}
+        return {"enabled": bool(el.get("enabled")), "key_set": bool(api_key(secrets)),
+                "voice_id": str(el.get("voice_id") or ""), "voices": dict(el.get("voices") or {})}
+
+    def _save_secret(self, name, value):
+        secrets = self.secrets_path()
+        if not os.path.exists(secrets):
+            import shutil
+
+            shutil.copy(os.path.join(self.root, "secrets.example.yaml"), secrets)
+        from .util import set_config_value
+
+        set_config_value(secrets, [name], value)
 
     def status(self):
         from .ai import DEFAULTS, AIClient, load_secrets
@@ -166,6 +187,8 @@ class PanelServer(EditorServer):
             "ai_keys": keys,
             "ai_models": {"claude": ai_cfg.get("claude_model"), "chatgpt": ai_cfg.get("chatgpt_model")},
             "ai_use_for": list(ai_cfg.get("use_for") or []),
+            "record_next": self.record_next,
+            "eleven": self._eleven_status(cfg, secrets),
             "coach_running": bool(self.coach and self.coach.running),
             "listen_running": bool(self.listen and self.listen.running),
         }
@@ -230,7 +253,7 @@ class PanelServer(EditorServer):
         self.coach = self.run(args, env={"COACH_STOP_FILE": self.stop_file})
         return self.coach
 
-    def stop_task(self, task, wait=8.0):
+    def stop_task(self, task, wait=25.0):
         """Ask the task to stop cleanly (so the coach saves its report), then force it."""
         if not task or not task.running:
             return
@@ -239,7 +262,9 @@ class PanelServer(EditorServer):
         while task.running and time.time() < end:
             time.sleep(0.2)
         if task.running:
+            task.lines.append("The coach did not stop in time. The panel closed it.")
             task.proc.terminate()
+        task.stopped_by_user = True
         try:
             os.remove(self.stop_file)
         except OSError:
@@ -299,7 +324,7 @@ class PanelServer(EditorServer):
             from .personality import available
 
             name = str(body.get("name", ""))
-            keys = [k for k, _, _ in available(os.path.join(self.root, "personalities"))] + ["random"]
+            keys = [k for k, _, _ in available(os.path.join(self.root, "personalities"))] + ["random", "mix"]
             if name not in keys:
                 raise ValueError("Unknown personality.")
             self.set_value(["coach", "personality"], name)
@@ -345,6 +370,33 @@ class PanelServer(EditorServer):
                 valid = [u for u in body["use_for"] if u in ("tips", "mental", "answers", "match_end")]
                 self.set_value(["ai", "use_for"], valid)
             return h._send(200, {"ok": True})
+        if path == "/api/elevenlabs/voices":
+            from .ai import load_secrets
+            from .eleven import api_key, characters_left, list_voices
+
+            key = str(body.get("key", "") or "").strip() or api_key(load_secrets(self.secrets_path()))
+            if not key:
+                raise ValueError("Paste your ElevenLabs API key first.")
+            from .eleven import ElevenError
+
+            try:
+                voices = list_voices(key)
+            except ElevenError as exc:
+                raise ValueError(str(exc)) from None
+            return h._send(200, {"ok": True, "voices": voices, "characters": characters_left(key)})
+        if path == "/api/elevenlabs":
+            from .eleven import SECRET
+
+            key = str(body.get("key", "") or "").strip()
+            if key:
+                self._save_secret(SECRET, key)
+            ids = [str(body.get("voice_id", "") or "")] + [str(v) for v in (body.get("voices") or {}).values()]
+            if any(len(i) > 64 or not all(c.isalnum() or c in "-_" for c in i) for i in ids):
+                raise ValueError("A voice ID is not valid.")
+            self.set_value(["elevenlabs", "enabled"], bool(body.get("enabled")))
+            self.set_value(["elevenlabs", "voice_id"], ids[0])
+            self.set_value(["elevenlabs", "voices"], {str(k): str(v) for k, v in (body.get("voices") or {}).items() if v})
+            return h._send(200, {"ok": True})
         if path == "/api/run":
             # Only these commands can run from the page.
             kind = body.get("kind")
@@ -370,8 +422,12 @@ class PanelServer(EditorServer):
             if st["packages_missing"] or not st["tesseract"]:
                 raise ValueError("Some parts are missing. Install them on the Home page first.")
             task = self.start_coach(body.get("personality") or None, bool(body.get("no_mic")),
-                                    bool(body.get("record")))
+                                    bool(body.get("record")) or self.record_next)
+            self.record_next = False   # Recording is for one session only.
             return h._send(200, task.info())
+        if path == "/api/record":
+            self.record_next = bool(body.get("on"))
+            return h._send(200, {"ok": True, "record_next": self.record_next})
         if path == "/api/coach/stop":
             threading.Thread(target=self.stop_task, args=(self.coach,), daemon=True).start()
             return h._send(200, {"ok": True})

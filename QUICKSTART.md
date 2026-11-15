@@ -17,6 +17,7 @@ This page gives the minimum steps to install and use the coach. For details and 
 1. Set Display Mode to **Windowed Fullscreen**.
 2. Note your Enemy Highlight Color (Settings > General). Purple or yellow gives fewer false alarms than red.
 3. Note which hand shows your weapon (Settings > General > Show Weapon).
+4. Turn on **Shooting Error** (Settings > Video > Stats). Choose **Text Only** or **Text and Graph**. The coach reads this number to know if you moved when you fired. Without it, the coach guesses from the picture, and that guess is right only about 3 times in 4.
 
 ## Set up the coach in the Control Panel (one time)
 
@@ -28,19 +29,24 @@ Double-click **Valorant Coach Setup**. The Control Panel opens in your web brows
    - Set **Enemy highlight colour** and **Gun side** to match Valorant.
    - Click **Test reading**. Make sure Ammo and Health show the numbers that were on screen.
    - Click **Save to config**.
-3. **Personality:** click **Hear it** to listen, then **Use this** on the coach you like.
+3. **Personality:** click **Hear it** to listen, then **Use this** on the coach you like. **Random** picks a new coach each match. **Mix** changes the coach every round and does not say which one.
 4. **Voice & mic:** choose your microphone. Click **Start test** and say "Bruce, how am I doing?"
 5. **Settings > Coach voice (optional):** choose a Windows voice and speed, and click **Hear it**. To get more voices, click **Open Windows voice settings**, add a voice, then click **Refresh voice list**.
 6. **AI coach (optional):** choose Claude or ChatGPT, paste your API key, and click **Test AI lines**.
+7. **ElevenLabs voices (optional):** Settings > **ElevenLabs voices**. Paste your key, click **Load my voices**, choose a voice, and click **Hear it**. Each line uses ElevenLabs characters.
 
 ## Use it (every time)
 
 1. Double-click **Valorant Coach Setup**.
 2. Click **Start coach** at the top of the panel.
-3. Start Valorant and play. The coach speaks between rounds.
-4. Click **Stop coach** when you finish. The coach saves a report, and you can read it on the **Reports** page.
+3. Start Valorant and play. The coach speaks in agent select, between rounds, and gives a debrief after the match.
+4. Click **Stop coach** when you finish. The coach saves a report after each match, and you can read it on the **Reports** page.
 
 You can also double-click **Valorant Coach** to start the coach without the panel. To stop it, close its window.
+
+## Update to a new version
+
+Unzip the new version over the coach folder. Your settings stay: they are in `config.yaml`, and the zip file does not contain that file. The coach adds new settings to it on the next start.
 
 ## Quick controls
 
@@ -69,8 +75,8 @@ Coaching questions get an answer between rounds. If you ask during a round, the 
 | A red or yellow item on the Home page | Click the button next to it. |
 | No sound | Settings > Coach voice > **Hear it**. Check that Windows sound goes to your headset. |
 | A new Windows voice is not in the list | Click **Refresh voice list**. Some newer "Natural" Windows voices do not work with the coach. |
-| The coach never speaks after a round | The coach did not read the round banner. During a match, press **F9** while the round result shows on screen. After the match, open Screen regions: the picture shows the banner. Drag the **Round banner** box over the text, click **Test reading**, and save. |
-| You want to show what the coach read in a match | Tick **Record match** at the top of the panel before you click **Start coach**. After the match, click **Stop coach**. Open the newest folder in `recordings` and read `summary.txt`. |
+| The coach never speaks after a round | The coach gets round results from the score at the top of the screen. Check the Coach log for `Round` lines. If there are none, record a match (see the next row). |
+| The coach misses rounds or reads wrong numbers | Settings > Troubleshooting: turn on **Record the next match**. Play one match and click **Stop coach**. Open the newest folder in `recordings` and read `summary.txt`. |
 | No report after a match | The coach saves a report only when it detects rounds. Fix the round banner first (see the row above). |
 | "Bruce" hears the wrong words | Settings > Voice commands > Voice model: choose **Large**. Then click **Download** on the Home page. |
 | Ammo or health shows a wrong number | Screen regions: make the box cover the whole number, with a little space around it. |
@@ -80,6 +86,13 @@ Coaching questions get an answer between rounds. If you ask during a round, the 
 | Black screenshot | Set Valorant to Windowed Fullscreen. |
 | The panel does not work at all | Double-click `Classic Setup Menu.bat` in the coach folder. It has the same tools in a text menu. |
 
-## Before you use it in Ranked
+## Use at your own risk
 
-Riot has not approved this tool. Test it in Deathmatch and unrated first. Keep it for your own use.
+- Riot Games did not make this tool and has not approved it. You are responsible for your own account.
+- The coach speaks only in agent select, between rounds, and after the match. It gives habit tips, never tactical calls.
+- Test it in Deathmatch and unrated first. Decide for yourself if you use it in Ranked.
+- It is tested at 1920 x 1080 with the game in English. Other screens and languages work less well. See "Known limits" in README.md.
+
+## Share it with a friend
+
+Do not zip the coach folder yourself, because it has your API keys and recordings. Double-click **Make Share Zip.bat**. It makes a safe zip in the `share` folder inside the coach folder, and File Explorer shows it.

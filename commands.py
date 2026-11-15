@@ -68,7 +68,7 @@ def parse(text, personalities):
         return ("unmute", None)
     if _has(t, ["mute", "quiet", "shut up", "stop talking", "be quiet", "silence", "pipe down"]):
         return ("mute", None)
-    for name in list(personalities) + ["random"]:
+    for name in list(personalities) + ["random", "mix"]:
         if _has(t, [name]):
             return ("personality", name)
     if _has(t, ["help", "what can you do", "what can i say", "what can i ask", "commands", "options"]):
