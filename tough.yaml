@@ -67,6 +67,9 @@ tips:
   - "Spraying at range loses fights. Burst it."
   - Burst. Reset. Burst.
   - You are wasting bullets. Short bursts.
+  no_counter_strafe:
+  - "Counter-strafe. Tap the opposite key. Then shoot."
+  - "Stop with the opposite key. Every time."
   bad_reload:
   - "You reloaded in a fight. Do not do that."
   - "Reload when safe. Not before."

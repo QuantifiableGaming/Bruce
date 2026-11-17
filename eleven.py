@@ -33,7 +33,7 @@ def api_key(secrets=None):
 
 
 def _request(url, key, body=None, timeout=8):
-    headers = {"xi-api-key": key, "Accept": "application/json"}
+    headers = {"xi-api-key": key, "Accept": "application/json", "User-Agent": "ValorantCoach/1.0"}
     data = None
     if body is not None:
         headers["Content-Type"] = "application/json"
@@ -130,13 +130,21 @@ class ElevenVoice:
         return data
 
 
-def play_pcm(data, sample_rate=SAMPLE_RATE):
-    """Play 16-bit mono audio and wait until it ends."""
+def play_pcm(data, sample_rate=SAMPLE_RATE, cut=lambda: False):
+    """Play 16-bit mono audio and wait until it ends, or until cut() is True."""
+    import time
+
     import numpy as np
     import sounddevice as sd
 
     samples = np.frombuffer(data[: len(data) // 2 * 2], dtype=np.int16)
     sd.play(samples, sample_rate)
+    end = time.monotonic() + len(samples) / float(sample_rate) + 0.3
+    while time.monotonic() < end:
+        if cut():
+            sd.stop()
+            return
+        time.sleep(0.05)
     sd.wait()
 
 

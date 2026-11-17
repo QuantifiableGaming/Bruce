@@ -40,8 +40,12 @@ def set_config_value(path, keys, value):
     y.width = 4096
     with open(path, encoding="utf-8") as fh:
         data = y.load(fh)
+    from ruamel.yaml.comments import CommentedMap
+
     node = data
     for k in keys[:-1]:
+        if not isinstance(node.get(k), dict):
+            node[k] = CommentedMap()      # A new section, for example after an update added it.
         node = node[k]
     node[keys[-1]] = value
     tmp = path + ".tmp"

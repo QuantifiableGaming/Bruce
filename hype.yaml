@@ -118,6 +118,9 @@ tips:
   - Short bursts, big results! Go!
   - Tap, tap, done! Keep it tight!
   - Let go early! The first shots do the work!
+  no_counter_strafe:
+  - "Counter-strafe! Tap the other key and fire!"
+  - "A then D, bang! Stop fast and shoot first!"
   bad_reload:
   - "No reloads in a fight! Get safe first!"
   - "Reload later! Swap or back off!"

@@ -22,16 +22,26 @@ class AmmoTracker:
         self.burst = None
         self.pending_up = None
         self.pending_down = None
+        self.mag = None   # Magazine size of the weapon in your hands. It tells the weapon type.
+        self.before_hide = None
 
     def _shots(self, t, count, prev_t=None):
         events = []
         if self.burst is None:
-            self.burst = {"start": t, "end": t, "shots": 0}
+            self.burst = {"start": t, "end": t, "shots": 0, "mag": self.mag}
             # The first shot was between the previous reading (prev_t) and this one (t).
             events.append(("burst_start", {"t": t, "prev_t": prev_t if prev_t is not None else t}))
         self.burst["shots"] += count
         self.burst["end"] = t
         return events
+
+    # Optional, from the key reader: fired(start, end) and reloaded(start, end) return True or False.
+    # Without them (replays, tests), every ammo drop is a shot and every rise is a reload.
+    fired = None
+    reloaded = None
+    switched = None   # switched(start, end): a weapon or ability key was used.
+    up_t = 0.0
+    SWITCH_WINDOW_S = 0.8   # The new weapon shows after its equip time, so look back this far for the key.
 
     def update(self, t, ammo):
         events = []
@@ -40,6 +50,8 @@ class AmmoTracker:
             self.burst = None
         if ammo is None:
             if self.last_t is not None and t - self.last_t > self.stale_s:
+                if self.last is not None:
+                    self.before_hide = self.last
                 self.last = None
                 self.pending_up = None
                 self.pending_down = None
@@ -48,7 +60,13 @@ class AmmoTracker:
         if self.pending_down is not None:
             before, low, pt, prev_t = self.pending_down
             self.pending_down = None
-            if ammo <= low:
+            w0 = (prev_t or pt) - 0.35
+            if ammo <= low and ((self.fired is not None and not self.fired(w0, pt)) or
+                                (self.switched is not None and self.switched(pt - self.SWITCH_WINDOW_S, pt))):
+                # No fire click: you changed weapon (for example a rifle with 10 rounds to
+                # Chamber's Headhunter with 8). Not shots.
+                self.mag = low
+            elif ammo <= low:
                 events += self._shots(pt, before - low, prev_t)
             else:
                 self.last = before   # The drop was a reading error.
@@ -57,8 +75,13 @@ class AmmoTracker:
             # An increase counts as a reload only if the next reading agrees.
             before, after = self.pending_up
             self.pending_up = None
-            if ammo == after:
+            if ammo == after and self.switched is not None and self.switched(self.up_t - self.SWITCH_WINDOW_S, t):
+                self.mag = after   # A weapon or ability key just before the rise: a weapon change.
+            elif ammo == after and before > 0 and self.reloaded is not None and not self.reloaded(t - 5.0, t):
+                self.mag = after   # No reload key and ammo was left: you changed weapon. Not a reload.
+            elif ammo == after:
                 events.append(("reload_done", {"t": t, "before": before, "after": after}))
+                self.mag = after   # A reload (or a new weapon) shows the full magazine.
             elif self.last is not None and ammo <= before:
                 self.last = before  # The increase was an OCR error.
 
@@ -66,12 +89,22 @@ class AmmoTracker:
         gap = t - self.last_t if self.last_t is not None else 0.0
         limit = max(self.max_drop, int(13 * min(gap, 1.5)) + 3)
         prev_t, self.last_t = self.last_t, t
-        if self.last is not None:
+        if self.last is None:
+            # First reading after the ammo was off the screen. The same number means the same
+            # weapon (you used an ability). A new number means a new weapon.
+            if self.mag is None or ammo > self.mag or (self.before_hide is not None and ammo != self.before_hide):
+                self.mag = max(ammo, 1)
+        else:
             drop = self.last - ammo
             if 0 < drop <= limit:
                 self.pending_down = (self.last, ammo, t, prev_t)
+            elif drop > limit:
+                self.mag = ammo   # Too big for shots: you changed to a smaller weapon.
             elif drop < 0:
                 self.pending_up = (self.last, ammo)
+                self.up_t = prev_t if prev_t is not None else t
+            if self.mag is not None and ammo > self.mag:
+                self.mag = ammo
         self.last = ammo
         return events
 
@@ -189,6 +222,18 @@ CREDIT_WORDS = ["CLUTCH", "ACE", "FLAWLESS", "THRIFTY"]
 BUY_WORDS = ["BUY PHASE", "MATCH POINT", "PRESS BUY"]
 
 
+def is_buy_text(text):
+    """True for a banner read of "BUY PHASE / PRESS B TO BUY", also when the reader got only part of it.
+
+    Real reads from a custom game: "BUY PHASE PRESS", "PHASE PRESS", "BUY PRESS", "BUY PHA PRESS GUY".
+    """
+    words = text.split()
+    if any(f" {w} " in f" {text} " for w in BUY_WORDS):
+        return True
+    phase = any(w.startswith("PHA") or w.endswith("HASE") for w in words)
+    return ("PRESS" in words and (phase or "BUY" in words)) or ("BUY" in words and phase)
+
+
 def find_agent(text):
     """Return (agent, role) from the agent select panel text. Either can be None."""
     import difflib
@@ -213,6 +258,87 @@ def find_agent(text):
     return None, role
 
 
+class RoundClock:
+    """Follows the round timer at the top of the screen.
+
+    The timer counts down in each phase:
+      buy phase   from 0:30 (0:45 in some rounds) to 0:00
+      live round  from 1:40. A value above 0:45 is always a live round.
+      after round a short countdown from about 0:07, then the next buy phase.
+    One buy-phase reading gives the round start: it is the reading time plus the seconds left.
+    The game shows whole seconds, so the true start is up to 1 second later than the estimate.
+    """
+
+    BUY_MAX = 45          # The longest buy phase, in seconds.
+    ROUND_LEN = 100       # A live round starts at 1:40.
+    POST_MAX = 9          # The countdown after a round never shows more than this.
+    FRESH = 3.0           # Two readings this close together belong to one countdown.
+
+    def __init__(self):
+        self.phase = None         # None (not known), "buy", "live" or "post"
+        self.last = None          # (time, seconds) of the last reading
+        self.live_t = None        # When the round went live, or the expected time in the buy phase.
+        self.post_t = None        # When the countdown after the round started.
+        self.buy_hint_t = -1e9    # The last time the banner said BUY PHASE.
+
+    def reset(self):
+        self.__init__()
+
+    def round_over(self, t):
+        """The score changed: the round ended."""
+        self.phase, self.live_t, self.post_t = "post", None, t
+
+    def buy_seen(self, t):
+        self.buy_hint_t = t
+
+    def on_read(self, t, secs):
+        if secs is None:
+            return
+        prev = self.last if self.last and 0 <= t - self.last[0] <= self.FRESH else None
+        self.last = (t, secs)
+        if secs > self.BUY_MAX:
+            # Two readings that agree: one wrong reading does not start a round.
+            if self.phase != "live" and prev and prev[1] > self.BUY_MAX and 0 <= prev[1] - secs <= 4:
+                self.phase = "live"
+                self.live_t = t - max(0, self.ROUND_LEN - secs)
+            return
+        if self.phase == "buy" and self.live_t is not None and t > self.live_t + 2.0:
+            self.phase = "live"                       # The countdown ended. The start was not seen.
+        if self.phase == "live":
+            if prev and prev[1] - secs >= 10 and secs <= self.POST_MAX:
+                self.round_over(t)                    # A jump down: the countdown after the round.
+            elif prev and secs > prev[1] + 2:
+                self.phase = "post" if secs <= self.POST_MAX else "buy"
+                self.post_t = t
+        elif self.phase == "post":
+            if secs > self.POST_MAX:
+                self.phase = "buy"
+        elif self.phase is None and t - self.buy_hint_t <= 2.0:
+            self.phase = "buy"
+        if self.phase == "buy":
+            self.live_t = t + secs
+
+    def is_live(self, t):
+        """True in a live round, False in the buy phase and after a round, None when not known."""
+        if self.phase == "live":
+            return True
+        if self.phase == "buy":
+            return None if self.live_t is None else t >= self.live_t
+        if self.phase == "post":
+            # Only with a timer reading a short time ago. Without one, the other rules decide.
+            return False if self.last and t - self.last[0] <= self.FRESH else None
+        return None
+
+    def speech_ok(self, t, cutoff):
+        """True or False when the timer knows whether the coach can talk. None: use the other rules."""
+        live = self.is_live(t)
+        if live is None:
+            return None
+        if not live:
+            return True
+        return self.live_t is not None and t <= self.live_t + cutoff - 0.3
+
+
 class MatchTracker:
     """Follows a match from the score at the top of the screen.
 
@@ -223,6 +349,7 @@ class MatchTracker:
 
     def __init__(self, credit_wait=4.0):
         self.credit_wait = credit_wait
+        self.clock = RoundClock()
         self.reset()
         self.last_agent_select_t = -1e9
 
@@ -232,10 +359,14 @@ class MatchTracker:
         self.last_change_t = -1e9
         self.last_score_ok_t = None
         self.in_match = False
+        self.waiting = False         # A score is on screen, but no sign of a real match yet (the Range shows 0-0).
         self.pending = None          # (time, won, score) of a round end that waits for the credit banner.
         self.credit = None           # (time, word)
         self.buy_t = -1e9
+        self.break_start_t = -1e9
+        self.clock.reset()
         self.match_ended_t = -1e9
+        self.surrender_said = False
         self.agent = None            # (name, role, first seen time)
         self.agent_said = False
 
@@ -249,7 +380,12 @@ class MatchTracker:
         return self.last_score_ok_t is not None and t - self.last_score_ok_t <= window
 
     def in_buy(self, t, window=4.0):
-        return t - self.buy_t <= window
+        return t - self.buy_t <= window or (self.in_match and self.clock.is_live(t) is False)
+
+    def on_timer(self, t, secs):
+        """A round timer reading (seconds left, or None)."""
+        self.clock.on_read(t, secs)
+        return []
 
     def poll(self, t):
         """Release a round end after the short wait for a credit banner."""
@@ -272,8 +408,16 @@ class MatchTracker:
         events = self.poll(t)
         if score is None:
             return events
+        gap = t - self.last_score_ok_t if self.last_score_ok_t is not None else 1e9
         self.last_score_ok_t = t
         if score == self.score:
+            self.candidate = None
+            return events
+        if self.in_match and self.score is not None and sum(score) < sum(self.score) \
+                and score != (0, 0) and gap < 60.0 and self.last_agent_select_t < self.last_change_t:
+            # A lower score in the same match is a misread. Example: at half time a gray wipe
+            # hides half of "11", and the reader sees "1". A new match starts at 0-0, or after
+            # the agent select screen, or after a long time with no score.
             self.candidate = None
             return events
         if not self.candidate or self.candidate[0] != score or t - self.candidate[1] > 8.0:
@@ -292,19 +436,34 @@ class MatchTracker:
         self.candidate = None
         self.score = score
         self.last_change_t = t
+        self.break_start_t = t    # A new score: the round ended (or the match started). Talking is allowed.
+        if old is not None and is_round:
+            self.clock.round_over(t)
         if old is None or sum(score) < sum(old):
             # First score of a match, or the score went back: a new match started.
-            if old is not None:
+            if old is not None and self.in_match:
                 events.append(("match_reset", {}))
-            self.in_match = True
             self.pending = None
-            events.append(("match_start", {"score": score}))
+            self.in_match = False
+            # The Range also shows a score (0-0). At 0-0, a match starts only with a buy phase
+            # (now, or in the last minute) or a real round change.
+            if score != (0, 0) or self.in_buy(t, 60.0):
+                self._start(events, score)
+            else:
+                self.waiting = True
         elif is_round:
+            if self.waiting:
+                self._start(events, old)
             events += self._flush()
             self.pending = (t, score[0] > old[0], score)
-        else:
+        elif not self.waiting:
             events.append(("score_sync", {"score": score}))   # Rounds were missed. Take the real score.
         return events
+
+    def _start(self, events, score):
+        self.waiting = False
+        self.in_match = True
+        events.append(("match_start", {"score": score}))
 
     def _flush(self):
         if not self.pending:
@@ -317,8 +476,11 @@ class MatchTracker:
         if not text:
             return events
         text = " ".join(text.upper().split())
-        if self._has(text, BUY_WORDS):
+        if is_buy_text(text):
             self.buy_t = t
+            self.clock.buy_seen(t)
+            if self.waiting and self.score is not None:
+                self._start(events, self.score)
         word = self._has(text, CREDIT_WORDS)
         if word:
             self.credit = (t, "TEAM ACE" if word == "ACE" and "TEAM" in text.split() else word)
@@ -331,19 +493,25 @@ class MatchTracker:
             return events
         text = " ".join(text.upper().split())
         result = self._has(text, RESULT_WORDS)
+        if ("SURRENDER" in text or "FORFEIT" in text) and 0 <= t - self.match_ended_t < 20 and not self.surrender_said:
+            self.surrender_said = True              # The first read missed the word: tell the session now.
+            events.append(("surrender", {"result": result}))
         if result and self.in_match and t - self.match_ended_t > 60:
+            self.surrender_said = "SURRENDER" in text or "FORFEIT" in text
             events += self._flush()
             score = self.score
             self.match_ended_t = t
             self.in_match = False
+            self.waiting = False
             self.score = None
             self.candidate = None
-            events.append(("match_end", {"result": result, "score": score}))
+            events.append(("match_end", {"result": result, "score": score,
+                                         "surrender": "SURRENDER" in text or "FORFEIT" in text}))
         elif self._has(text, MODE_WORDS) and not result and not self.score_healthy(t, 10.0):
             if t - self.last_agent_select_t > 180:
                 self.last_agent_select_t = t
                 self.agent, self.agent_said = None, False
-                self.score, self.candidate, self.in_match = None, None, False
+                self.score, self.candidate, self.in_match, self.waiting = None, None, False, False
                 events.append(("agent_select", {}))
             self.agent_select_seen_t = t
         return events

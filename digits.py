@@ -17,6 +17,9 @@ SCORE_DIGIT_FRACTION = 20 / 1080  # Height of a score digit.
 
 MIN_MATCH = 0.62         # Lowest match quality for one digit. 1.0 is a perfect match.
 WEAK_MATCH = 0.45        # A possible digit that is not clear. It makes the full read unsafe.
+TIMER_CELLS = ((32, 46), (57, 71), (75, 89))   # Left edge range of each timer digit, in the 140 px wide timer area.
+TIMER_MATCH = 0.72
+TIMER_CONTRAST = 25
 MIN_CONTRAST = 35
 SPECTATE_MATCH = 0.6     # In tests: 0.25 or less when alive, 0.84 or more when you watch a teammate.        # Lowest brightness step between a digit and its background.
 
@@ -110,6 +113,54 @@ class DigitReader:
             return None, 0.0
         return int(text), min(c[0] for c in chosen)
 
+
+    def timer(self, frame):
+        """Read the round timer at the top centre ("1:24"). Return the seconds left, or None.
+
+        The timer is white. It is red in the last seconds of a round. The spike icon takes
+        its place after a plant, so the result is then None.
+        """
+        if frame is None:
+            return None
+        k = frame.shape[0] / 1080.0
+        mid = frame.shape[1] / 2.0
+        area = frame[int(round(20 * k)):int(round(80 * k)), int(round(mid - 70 * k)):int(round(mid + 70 * k))]
+        if area.size == 0:
+            return None
+        if abs(k - 1.0) > 0.03:
+            area = cv2.resize(area, (140, 60), interpolation=cv2.INTER_AREA if k > 1 else cv2.INTER_CUBIC)
+        for plane in (area.min(axis=2), area.max(axis=2)):
+            value = self.timer_plane(plane)
+            if value is not None:
+                return value
+        return None
+
+    def timer_plane(self, plane):
+        """Read "M:SS" from a 60 x 140 grey picture of the timer area at 1080p."""
+        if plane.shape != (60, 140):
+            return None
+        fplane = plane.astype(np.float32)
+        digits = []
+        row = None
+        for x0, x1 in TIMER_CELLS:
+            best = (0.0, None, 0)
+            for d, (shape, on, off) in self.shapes["thin"].items():
+                th, tw = shape.shape
+                res = cv2.matchTemplate(fplane[:, x0:x1 + tw], shape, cv2.TM_CCOEFF_NORMED)
+                _, q, _, (x, y) = cv2.minMaxLoc(res)
+                if q > best[0]:
+                    patch = plane[y:y + th, x0 + x:x0 + x + tw]
+                    if float(patch[on].mean()) - float(patch[off].mean()) >= TIMER_CONTRAST:
+                        best = (q, d, y)
+            if best[0] < TIMER_MATCH:
+                return None
+            if row is not None and abs(best[2] - row) > 2:
+                return None                      # The three digits are on one line.
+            row = best[2]
+            digits.append(best[1])
+        if digits[1] > "5":
+            return None
+        return int(digits[0]) * 60 + int(digits[1] + digits[2])
 
     def spectating(self, frame):
         """Return True when the "SWITCH PLAYER" text shows (you are dead), False if not, None if unknown."""

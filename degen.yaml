@@ -1,0 +1,113 @@
+# Personality: Degen (18+)
+# Adults only. Heavy swearing, crude roasts of your plays and dirty jokes. It still gives the fix.
+# Limits: nothing sexually explicit, no slurs, and the jokes are about plays, not about who you are.
+# NOT safe for streams. It shows only when coach.allow_18_plus is true (Settings > Coaching).
+# Random, Mix and Twitch chat votes never pick it.
+# Lists left out here come from calm.yaml.
+
+name: "Degen"
+description: "18+ only. Swears, roasts your plays hard and makes dirty jokes. Not for streams."
+adult: true
+voice:
+  rate: 192
+  name_contains: ""
+
+reset:
+- "Well, that was a shit show. Deep breath, you absolute gremlin. Go again."
+- "Three rounds down the toilet. Flush it and reset."
+- "Fuck that round. Seriously, forget it. Next one."
+- "You're playing like you're hungover. Wake the hell up."
+- "That streak is cursed. Break the curse. Win one, damn it."
+- "Okay, ass-kicking is over for now. Your turn to give one."
+- "Stop sulking, degen. You've survived worse decisions than that."
+- "Shake it off. Even your worst Friday night went better than that."
+credit:
+- "Holy shit. Who are you and where's the bum I usually coach?"
+- "Now that was filthy. In the good way."
+- "Damn, that was clean. Don't let it go to your head."
+- "Fuck yes. More of that."
+- "That round was sexier than your search history. Barely."
+- "Look at you, finally earning the attention."
+- "Clip it before you ruin it, legend."
+- "That was nasty. I'm proud and a little scared."
+focus:
+- "One fucking thing this round: {focus}. That's it."
+- "Listen, degen. {focus}. Do it or I'll roast you all night."
+- "Simple job this round: {focus}. Don't screw it up."
+tips:
+  crosshair_low:
+  - "Your crosshair is down at their ankles. Aim at the damn head."
+  - "Why are you aiming at the floor? Is there money down there? Head height."
+  - "Stop staring at their feet, weirdo. Crosshair up."
+  crosshair_high:
+  - "You're aiming at the sky like it owes you money. Bring it down."
+  - "Lower, champ. Heads, not birds."
+  moving_shots:
+  - "Running and gunning like a headless chicken. Stop, then shoot."
+  - "You can't shoot for shit while you move. Plant your feet."
+  - "Stop dancing, you're not in a club. Stand still, then fire."
+  - "Moving shots again? Bold. Stupid, but bold. Stop first."
+  long_spray:
+  - "You sprayed that like a broken fire hose. Short bursts, damn it."
+  - "All that spray and nothing landed. Story of your life. Burst it."
+  - "Let go of the trigger, you maniac. Three or four shots."
+  no_counter_strafe:
+  - "Your stops are slow as hell. Tap the opposite key, then shoot."
+  - "Let go and tap the other way. It stops you faster, genius."
+  bad_reload:
+  - "Reloading in the middle of a gunfight? Fucking brave. Also dead. Cover first."
+  - "Who reloads in the open? You, apparently. Win the fight, then reload."
+match_good:
+  crosshair: "Match over. Your crosshair was at head height in {good} of {total} fights. Not bad, you degenerate."
+  strafe: "Match over. You stopped before shooting in {good} of {total} fights. Hell yes."
+  credit: "Match over. {count} highlight rounds. Filthy."
+  fallback: "Match over. Read the report. Drink some water. Touch some grass."
+
+answers:
+  wake: "What the hell do you want?"
+  doing_focus: "{won} to {lost}. Not terrible. Fix your damn {focus}."
+  doing_clean: "{won} to {lost}, and no mistakes. Who hacked you?"
+  doing_no_data: "You haven't done shit yet. Go play."
+  focus: "Your {focus} is a mess. Start there."
+  focus_none: "Nothing to roast yet. Give it a round, you'll screw up."
+  queued: "Busy watching you suffer. Ask me after the round."
+  muted: "Fine. Shutting the hell up."
+  unmuted: "I'm back, baby. Miss the abuse?"
+  switched: "Switching to {name}. Boring, but okay."
+  unknown: "What the hell did you just say? Again."
+agent_select:
+- "Agent select. Pick something you can actually play, degen."
+- "New match. Let's see how you screw this one up."
+- "Lock in, champ. And don't instalock and cry."
+agent_role:
+  duelist:
+  - "{agent}. Entry and die, the classic. Stop before you shoot, idiot."
+  - "{agent}. Go in first. Try not to feed like a damn buffet."
+  initiator:
+  - "{agent}. Use your shit before you die with it."
+  controller:
+  - "{agent}. Smokes first, ego second. Stay alive."
+  sentinel:
+  - "{agent}. Sit your ass down and hold the site."
+agent_any:
+- "{agent}. Bold choice. Don't fuck it up."
+debrief:
+  victory:
+  - "Victory, {won} to {lost}. Hell yes. Drinks are on you."
+  - "You won {won} to {lost}. Filthy. I'm proud, don't make it weird."
+  defeat:
+  - "Defeat, {won} to {lost}. What a shit show. We go again."
+  - "Lost {won} to {lost}. That hurt to watch. Next one, champ."
+  draw:
+  - "A draw, {won} to {lost}. All that sweat for nothing."
+  unknown:
+  - "Match over. Thank fuck."
+  good_crosshair: "Your crosshair was at head height in {good} of {total} fights. Not bad."
+  good_strafe: "You stopped before shooting in {good} of {total} fights. Hell yes."
+  good_credit: "Highlight rounds: {count}. Filthy."
+  work_on: "Next match, fix your damn {focus}."
+  clean: "No repeated mistakes. Who the hell are you?"
+  signoff:
+  - "Report saved. Go hydrate, degen."
+  - "That's it. Log off and touch some grass."
+  - "Session over. Same time tomorrow, you addict."

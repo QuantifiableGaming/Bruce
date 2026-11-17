@@ -4,7 +4,10 @@ import queue
 import threading
 import time
 
-from .commands import split_wake
+from .commands import split_wake, wake_mode
+
+FOLLOW_UP = "\x00follow:"   # The same marker as Session.FOLLOW_UP
+CHAT = "\x00chat:"         # The same marker as Session.CHAT: "Hey Bruce" starts a chat
 
 
 class WakeListener(threading.Thread):
@@ -23,6 +26,7 @@ class WakeListener(threading.Thread):
         self.on_text = on_text
         self.on_heard = on_heard  # Optional: called with every sentence, for the listen test.
         self.stop_event = threading.Event()
+        self.follow_up_until = 0.0     # Until then, a sentence with no wake word is a follow-up question.
         self.ready = threading.Event()
         self.error = None
 
@@ -58,6 +62,7 @@ class WakeListener(threading.Thread):
             audio.put(bytes(indata))
 
         awaiting_until = 0.0
+        awaiting_mark = ""
         try:
             with sd.RawInputStream(samplerate=16000, blocksize=4000, dtype="int16",
                                    channels=1, callback=callback, device=self.device):
@@ -76,18 +81,27 @@ class WakeListener(threading.Thread):
                         self.on_heard(text)
                     heard, command = split_wake(text, self.wake_words)
                     if heard:
+                        mark = CHAT if wake_mode(text, self.wake_words) == "chat" else ""
                         if command:
-                            self.on_text(command)
+                            self.on_text(mark + command)
                             awaiting_until = 0.0
                         else:
                             self.on_text("")  # Only the wake word: the coach answers "Yes?"
                             awaiting_until = time.monotonic() + self.timeout
+                            awaiting_mark = mark
                     elif time.monotonic() < awaiting_until:
-                        self.on_text(text)
+                        self.on_text(awaiting_mark + text)
                         awaiting_until = 0.0
+                    elif time.monotonic() < self.follow_up_until:
+                        self.follow_up_until = 0.0
+                        self.on_text(FOLLOW_UP + text)
         except Exception as exc:  # Microphone missing or busy.
             self.error = f"Microphone error: {exc}"
             self.ready.set()
+
+    def open_follow_up(self, seconds):
+        """After an answer: the next sentence in this time needs no wake word."""
+        self.follow_up_until = time.monotonic() + seconds
 
     def stop(self):
         self.stop_event.set()

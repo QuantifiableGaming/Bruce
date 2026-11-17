@@ -2,7 +2,6 @@
 opencv-python>=4.13
 numpy>=2.3
 mss
-pytesseract
 pyttsx3
 pywin32; sys_platform == "win32"
 pynput
@@ -10,3 +9,12 @@ ruamel.yaml>=0.18
 vosk
 sounddevice
 pytest
+obsws-python                   # Optional: instant replay on stream through OBS Studio.
+# The Windows text reader (words: BUY PHASE, WON, VICTORY, agent names). No extra program needed.
+winrt-runtime; sys_platform == "win32"
+winrt-Windows.Foundation; sys_platform == "win32"
+winrt-Windows.Foundation.Collections; sys_platform == "win32"
+winrt-Windows.Globalization; sys_platform == "win32"
+winrt-Windows.Graphics.Imaging; sys_platform == "win32"
+winrt-Windows.Media.Ocr; sys_platform == "win32"
+winrt-Windows.Storage.Streams; sys_platform == "win32"

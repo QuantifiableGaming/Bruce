@@ -20,8 +20,8 @@ class ScreenSource:
         if now < self.next_t:
             time.sleep(self.next_t - now)
         self.next_t = max(self.next_t + self.interval, time.perf_counter())
-        shot = np.array(self.sct.grab(self.monitor))
-        frame = np.ascontiguousarray(shot[:, :, :3])  # BGRA to BGR
+        shot = np.asarray(self.sct.grab(self.monitor))   # A view of the grab: no copy yet.
+        frame = np.ascontiguousarray(shot[:, :, :3])  # BGRA to BGR, in one copy
         return time.perf_counter(), frame
 
 

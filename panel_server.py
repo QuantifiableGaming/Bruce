@@ -21,6 +21,7 @@ SETTINGS = [
         (["coach", "tip_cooldown_rounds"], "int", "Rounds between repeat tips", "How long before the same tip can play again.", 0, 6),
         (["coach", "mute_hotkey"], "str", "Mute hotkey", "Key that mutes the coach during a match, for example f8.", None, None),
         (["coach", "screenshot_hotkey"], "str", "Screenshot hotkey", "Key that saves the screen during a match, for the Screen regions page.", None, None),
+        (["coach", "allow_18_plus"], "bool", "18+ personality (Degen)", "Adults only. Shows the Degen coach, which swears and makes crude jokes. NOT safe for streams: Twitch and YouTube can act on it. Random, Mix and chat votes never pick it.", None, None),
     ]),
     ("Mistake checks", [
         (["checks", "crosshair", "tolerance_px_at_1080"], "int", "Crosshair tolerance (px)", "How far from head height still counts as good aim.", 5, 60),
@@ -30,17 +31,61 @@ SETTINGS = [
     ]),
     ("Voice commands", [
         (["voice_control", "enabled"], "bool", "Voice commands on", "Listen for the wake word during matches.", None, None),
+        (["voice_control", "follow_up_s"], "int", "Follow-up time (seconds)", "After an AI answer, the next question in this time needs no \"Bruce\". 0: off.", 0, 20),
+        (["ai", "small_talk"], "bool", "Chat mode (\"Hey Bruce\")", "\"Hey Bruce, ...\" starts a chat about anything between rounds. \"Bruce\" alone gives coaching.", None, None),
         (["voice_control", "model_path"], "choice", "Voice model", "The large model hears words better. After you change it, click Download next to Voice commands on the Home page.",
          [["models/vosk-model-small-en-us-0.15", "Small (40 MB, fast)"],
           ["models/vosk-model-en-us-0.22-lgraph", "Large (128 MB, more accurate)"]], None),
         (["voice_control", "wake_word"], "str", "Wake word", "The word you say first, for example bruce.", None, None),
         (["voice_control", "answer_window_s"], "int", "Answer window after a round (s)", "Coaching questions get answers for this long after a round ends.", 10, 60),
     ]),
+    ("Content creator", [
+        (["creator", "name"], "str", "Your name or channel name", "The coach says it in \"Bruce, say hi\" and \"Bruce, sign off\". Leave it empty to leave the name out.", None, None),
+        (["creator", "clip_hotkey"], "str", "Recorder clip hotkey", "\"Bruce, mark that\" presses this key to save a clip, for example alt+f10 (NVIDIA) or win+alt+g (Xbox Game Bar). Leave it empty to only note the time in the report.", None, None),
+        (["creator", "auto_clip"], "bool", "Auto-clip highlights", "An ACE, TEAM ACE or CLUTCH banner saves a clip by itself: a line in Clips to post, and a press of the clip hotkey.", None, None),
+        (["creator", "auto_clip_obs"], "choice", "Auto-clip with OBS", "When OBS instant replay is on: save the replay file, play it on stream, or do nothing.",
+         [["save", "Save the file"], ["replay", "Play it on stream"], ["off", "Do nothing"]], None),
+        (["challenge", "shots"], "int", "Range challenge stops", "\"Bruce, start the challenge\" scores this many stops.", 5, 100),
+        (["creator", "confirm_mark"], "bool", "Say \"Marked\" after a mark", "The coach confirms each \"mark that\". Turn it off to keep your clips quiet.", None, None),
+    ]),
+    ("Movement keys", [
+        (["keys", "enabled"], "bool", "Read movement keys", "Used for moving shots and counter-strafes. The coach only notes when these keys go down and up.", None, None),
+        (["keys", "forward"], "str", "Forward key", "One key, for example w.", None, None),
+        (["keys", "left"], "str", "Left key", "One key, for example a.", None, None),
+        (["keys", "back"], "str", "Back key", "One key, for example s.", None, None),
+        (["keys", "right"], "str", "Right key", "One key, for example d.", None, None),
+        (["keys", "fire"], "choice", "Fire button", "The button you shoot with.",
+         [["mouse_left", "Left mouse button"], ["mouse_right", "Right mouse button"]], None),
+    ]),
+    ("Twitch chat", [
+        (["twitch", "enabled"], "bool", "Read Twitch chat", "The coach reads your chat. It needs no account to read.", None, None),
+        (["twitch", "channel"], "str", "Channel", "Your Twitch channel name.", None, None),
+        (["twitch", "personality_votes"], "bool", "Personality votes", "Viewers type !vote savage. At each round end, the top vote takes over.", None, None),
+        (["twitch", "stats_command"], "bool", "!coach command", "Answers !coach in chat with your session numbers. Needs the account and token below.", None, None),
+        (["twitch", "bot_name"], "str", "Chat account", "The account that answers in chat. It can be your own.", None, None),
+        (["secret", "twitch_oauth_token"], "secret", "Chat token", "An OAuth token for that account with chat:read and chat:edit. Saved in secrets.yaml.", None, None),
+    ]),
+    ("Stream instant replay (OBS)", [
+        (["obs_replay", "enabled"], "bool", "Instant replay on", "\"Bruce, replay that\" saves the OBS replay buffer and shows it on your stream. Your own screen does not change.", None, None),
+        (["obs_replay", "port"], "int", "OBS WebSocket port", "OBS: Tools > WebSocket Server Settings. The default is 4455.", 1, 65535),
+        (["secret", "obs_password"], "secret", "OBS WebSocket password", "From the same OBS window (Show Connect Info). It is saved in secrets.yaml, not in config.yaml.", None, None),
+        (["obs_replay", "scene"], "str", "Replay scene", "The OBS scene that shows the replay. Put your replay overlay in this scene.", None, None),
+        (["obs_replay", "media_source"], "str", "Replay media source", "A Media Source in the replay scene. The coach loads each saved replay into it.", None, None),
+        (["obs_replay", "when"], "choice", "When to play", "Play at once, or save at once and play when the round ends.",
+         [["now", "At once"], ["after_round", "At the end of the round"]], None),
+        (["obs_replay", "max_length_s"], "int", "Longest replay (seconds)", "The coach switches back to your scene after this time.", 5, 120),
+    ]),
     ("AI coach", [
         (["ai", "timeout_s"], "float", "AI wait time (s)", "Longer than this, and the coach uses the scripted line.", 1.0, 10.0),
         (["ai", "max_words"], "int", "Longest AI line (words)", "Shorter lines finish before the buy phase ends.", 10, 40),
+        (["ai", "post_match_analysis"], "bool", "Written match review", "After each match, the AI writes a review at the end of the report. One AI request for each match.", None, None),
+        (["ai", "analysis_delay_s"], "int", "Review wait (s)", "The coach waits this long after the match, so the review can use the scoreboard numbers.", 0, 300),
         (["ai", "claude_model"], "str", "Claude model", "Change it only if Anthropic renames its models.", None, None),
         (["ai", "chatgpt_model"], "str", "ChatGPT model", "Change it only if OpenAI renames its models.", None, None),
+        (["ai", "glm_model"], "str", "Free model (OpenRouter)", "A model ID from openrouter.ai that ends in :free.", None, None),
+        (["ai", "groq_model"], "str", "Groq model", "A model on Groq's free plan, for example openai/gpt-oss-120b.", None, None),
+        (["ai", "custom_base_url"], "str", "Custom AI address", "Up to and with /v1, for example http://localhost:11434/v1 (Ollama).", None, None),
+        (["ai", "custom_model"], "str", "Custom AI model", "The model name that the service uses, for example llama3.2.", None, None),
     ]),
     ("Screen capture", [
         (["monitor"], "int", "Monitor number", "1 is your main monitor.", 1, 6),
@@ -48,6 +93,17 @@ SETTINGS = [
         (["tesseract_cmd"], "str", "Tesseract path (optional)", "Leave empty. Set it only if Tesseract is in an unusual folder.", None, None),
     ]),
 ]
+
+
+HOTKEY_NAMES = {"alt", "ctrl", "control", "shift", "win", "windows", "cmd", "home", "end", "insert", "delete",
+                "page_up", "page_down", "print_screen", "pause", "scroll_lock", "space", "tab", "enter", "esc"}
+
+
+def _known_key(name):
+    """True for a key name that the coach can press (the same names as session.press_hotkey)."""
+    if name in HOTKEY_NAMES or len(name) == 1:
+        return True
+    return name[:1] == "f" and name[1:].isdigit() and 1 <= int(name[1:]) <= 20
 
 
 def _get(data, path):
@@ -147,13 +203,13 @@ class PanelServer(EditorServer):
 
     def status(self):
         from .ai import DEFAULTS, AIClient, load_secrets
-        from .hud import find_tesseract
+        from .hud import find_tesseract, text_reader_name
         from .personality import available
         from .vosk_setup import model_ready
 
         cfg = self.cfg()
         missing = []
-        for mod in ("cv2", "numpy", "mss", "pytesseract", "pyttsx3", "pynput", "ruamel.yaml", "vosk", "sounddevice"):
+        for mod in ("cv2", "numpy", "mss", "pyttsx3", "pynput", "ruamel.yaml", "vosk", "sounddevice", "winrt.windows.media.ocr"):
             try:
                 __import__(mod)
             except Exception:
@@ -170,12 +226,14 @@ class PanelServer(EditorServer):
             "python_ok": sys.version_info >= (3, 11),
             "packages_missing": missing,
             "tesseract": find_tesseract(str(cfg.get("tesseract_cmd") or "")),
+            "text_reader": text_reader_name(cfg),
             "voice_model": model_ready(model_path),
             "voice_enabled": bool(cfg.get("voice_control", {}).get("enabled")),
             "wake_word": cfg.get("voice_control", {}).get("wake_word", "bruce"),
             "mic_device": cfg.get("voice_control", {}).get("mic_device"),
             "personality": cfg.get("coach", {}).get("personality", "calm"),
-            "personalities": [{"key": k, "name": n, "description": d} for k, n, d in available(os.path.join(self.root, "personalities"))],
+            "personalities": [{"key": k, "name": n, "description": d} for k, n, d in available(
+                os.path.join(self.root, "personalities"), include_adult=bool(cfg.get("coach", {}).get("allow_18_plus")))],
             "voice_name": cfg.get("coach", {}).get("voice_name") or "",
             "voice_rate": cfg.get("coach", {}).get("voice_rate"),
             "enemy_color": cfg.get("enemy_highlight", {}).get("color", "red"),
@@ -185,8 +243,13 @@ class PanelServer(EditorServer):
             "ai_ready": client.enabled,
             "ai_reason": client.reason,
             "ai_keys": keys,
-            "ai_models": {"claude": ai_cfg.get("claude_model"), "chatgpt": ai_cfg.get("chatgpt_model")},
-            "ai_use_for": list(ai_cfg.get("use_for") or []),
+            "self_test_available": os.path.isfile(os.path.join(self.root, "tests", "test_logic.py")),
+            "ai_models": {p: ai_cfg.get(f"{p}_model") or d["model"] for p, d in DEFAULTS.items()},
+            "ai_custom_url": ai_cfg.get("custom_base_url") or DEFAULTS["custom"]["base_url"],
+            "ai_review_only": sorted(p for p, d in DEFAULTS.items() if d.get("review_only")),
+            "ai_use_for": (list(ai_cfg["use_for"]) if ai_cfg.get("use_for") is not None
+                           else ["tips", "mental", "answers", "match_end"])
+                          + (["review"] if ai_cfg.get("post_match_analysis", True) else []),
             "record_next": self.record_next,
             "eleven": self._eleven_status(cfg, secrets),
             "coach_running": bool(self.coach and self.coach.running),
@@ -201,6 +264,11 @@ class PanelServer(EditorServer):
             for path, kind, label, help_text, lo, hi in items:
                 row = {"path": path, "type": kind, "label": label, "help": help_text,
                        "min": lo, "max": hi, "value": _get(cfg, path)}
+                if kind == "secret":
+                    from .ai import load_secrets
+
+                    row["value"] = ""                      # Never send a password to the page.
+                    row["is_set"] = bool(load_secrets(self.secrets_path()).get(path[-1]))
                 if kind == "choice":
                     row.update(min=None, choices=lo)
                 rows.append(row)
@@ -215,6 +283,10 @@ class PanelServer(EditorServer):
                 raise ValueError(f"This setting cannot be changed here: {'.'.join(path)}")
             kind, lo, hi = allowed[path]
             value = change["value"]
+            if kind == "secret":
+                if str(value).strip():
+                    self._save_secret(path[-1], str(value).strip())
+                continue
             if kind == "choice":
                 if value not in [c[0] for c in lo]:
                     raise ValueError(f"Unknown choice for {'.'.join(path)}.")
@@ -232,6 +304,15 @@ class PanelServer(EditorServer):
                     value = value.lower()
                     if not value:
                         raise ValueError("This setting cannot be empty.")
+                if path[0] == "keys":
+                    value = value.lower()
+                    if len(value) != 1:
+                        raise ValueError(f"The {path[-1]} key must be one key, for example w.")
+                if path[-1] == "clip_hotkey" and value:
+                    value = value.lower().replace(" ", "")
+                    bad = [k for k in value.split("+") if not _known_key(k)]
+                    if bad:
+                        raise ValueError(f"Recorder clip hotkey: unknown key '{bad[0]}'. Use names such as alt+f10 or win+alt+g.")
             if lo is not None and not (lo <= value <= hi):
                 raise ValueError(f"{'.'.join(path)} must be between {lo} and {hi}.")
             self.set_value(list(path), value)
@@ -300,6 +381,11 @@ class PanelServer(EditorServer):
             return h._send(200, self.coach.info() if self.coach else {"running": False, "lines": [], "count": 0})
         if path == "/api/reports":
             return h._send(200, self.reports())
+        if path == "/api/history":
+            from . import history
+
+            entries = history.load(os.path.join(self.root, "reports", "history.jsonl"))
+            return h._send(200, {"rows": history.table(entries), "count": len(entries)})
         if path.startswith("/api/report/"):
             name = os.path.basename(path.rsplit("/", 1)[-1])
             file = os.path.join(self.root, "reports", name)
@@ -324,7 +410,8 @@ class PanelServer(EditorServer):
             from .personality import available
 
             name = str(body.get("name", ""))
-            keys = [k for k, _, _ in available(os.path.join(self.root, "personalities"))] + ["random", "mix"]
+            allow = bool((self.cfg() or {}).get("coach", {}).get("allow_18_plus"))
+            keys = [k for k, _, _ in available(os.path.join(self.root, "personalities"), include_adult=allow)] + ["random", "mix"]
             if name not in keys:
                 raise ValueError("Unknown personality.")
             self.set_value(["coach", "personality"], name)
@@ -351,12 +438,12 @@ class PanelServer(EditorServer):
             from .ai import DEFAULTS
 
             provider = str(body.get("provider", "off"))
-            if provider not in ("off", "claude", "chatgpt"):
+            if provider not in ("off",) + tuple(DEFAULTS):
                 raise ValueError("Unknown AI provider.")
             key = str(body.get("key", "") or "").strip()
             if key:
                 if provider == "off":
-                    raise ValueError("Choose Claude or ChatGPT for this key.")
+                    raise ValueError("Choose an AI for this key.")
                 secrets = self.secrets_path()
                 if not os.path.exists(secrets):
                     import shutil
@@ -365,10 +452,27 @@ class PanelServer(EditorServer):
                 from .util import set_config_value
 
                 set_config_value(secrets, [DEFAULTS[provider]["secret"]], key)
+            if provider == "custom":
+                url = str(body.get("custom_base_url") or "").strip().rstrip("/")
+                model = str(body.get("custom_model") or "").strip()
+                if url:
+                    if not url.startswith(("http://", "https://")):
+                        raise ValueError("The Custom AI address must start with http:// or https://.")
+                    self.set_value(["ai", "custom_base_url"], url)
+                if model:
+                    self.set_value(["ai", "custom_model"], model)
             self.set_value(["ai", "provider"], provider)
             if "use_for" in body:
                 valid = [u for u in body["use_for"] if u in ("tips", "mental", "answers", "match_end")]
-                self.set_value(["ai", "use_for"], valid)
+                if not DEFAULTS.get(provider, {}).get("review_only"):
+                    self.set_value(["ai", "use_for"], valid)   # GLM keeps your spoken choices for the other AIs.
+                self.set_value(["ai", "post_match_analysis"], "review" in body["use_for"])
+            return h._send(200, {"ok": True})
+        if path == "/api/season":
+            from . import history
+
+            name = str(body.get("name", "") or "").strip()
+            history.add_season(name, os.path.join(self.root, "reports", "history.jsonl"))
             return h._send(200, {"ok": True})
         if path == "/api/elevenlabs/voices":
             from .ai import load_secrets
@@ -403,6 +507,8 @@ class PanelServer(EditorServer):
             personality = body.get("personality")
             commands = {
                 "install_tesseract": ["install-tesseract"],
+                "text_test": ["text-test"],
+                "self_test": ["self-test"],
                 "install_voice_model": ["install-voice-model"],
                 "install_packages": None,
                 "voices": ["voices", "--json"],
@@ -410,6 +516,11 @@ class PanelServer(EditorServer):
                 "preview": ["preview"] + (["--personality", personality] if personality else []),
                 "ai_test": ["ai-test"] + (["--personality", personality] if personality else []),
             }
+            if kind == "analyze":
+                name = os.path.basename(str(body.get("report") or ""))
+                if not name.endswith(".md"):
+                    raise ValueError("Choose a report.")
+                commands["analyze"] = ["analyze", name]
             if kind not in commands:
                 raise ValueError("Unknown command.")
             if kind == "install_packages":
@@ -419,7 +530,7 @@ class PanelServer(EditorServer):
             return h._send(200, task.info())
         if path == "/api/coach/start":
             st = self.status()
-            if st["packages_missing"] or not st["tesseract"]:
+            if st["packages_missing"]:
                 raise ValueError("Some parts are missing. Install them on the Home page first.")
             task = self.start_coach(body.get("personality") or None, bool(body.get("no_mic")),
                                     bool(body.get("record")) or self.record_next)

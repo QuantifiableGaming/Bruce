@@ -128,6 +128,9 @@ tips:
   - That spray was a lot. Too much, actually.
   - Burst, love. You're not watering plants.
   - Control it. Wild is not a good look.
+  no_counter_strafe:
+  - "You just let go of the key and hoped? Tap the opposite one. It is faster."
+  - "Your stops are slower than a loading screen. Counter-strafe."
   bad_reload:
   - "Reloading mid fight? Very brave. Very dead. Reload when safe."
   - "Interesting time to reload. And by interesting, I mean terrible."

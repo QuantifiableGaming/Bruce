@@ -42,17 +42,24 @@ if errorlevel 1 (
 
 if not exist models mkdir models
 
+%PY% -c "import sys; from vcoach import winocr; sys.exit(0 if winocr.available() else 1)" >nul 2>nul
+if not errorlevel 1 goto words_ok
 %PY% -c "import sys; from vcoach.hud import find_tesseract; sys.exit(0 if find_tesseract() else 1)" >nul 2>nul
 if not errorlevel 1 goto tess_ok
 echo.
-echo Tesseract is not installed. The coach needs it to read the ammo, health and round banner.
+echo The Windows text reader does not work on this PC, and Tesseract is not installed.
+echo Without a word reader, the coach still follows rounds, but it cannot see buy phase,
+echo round credits, the match result or your agent. Tesseract is a free backup reader.
 choice /c YN /n /m "Install Tesseract now? (Y/N): "
-if errorlevel 2 goto tess_done
+if errorlevel 2 goto words_done
 %PY% main.py install-tesseract
-goto tess_done
+goto words_done
 :tess_ok
-echo Tesseract found.
-:tess_done
+echo Word reader: Tesseract.
+goto words_done
+:words_ok
+echo Word reader: the Windows text reader. Tesseract is not needed.
+:words_done
 
 %PY% main.py install-voice-model
 if errorlevel 1 (

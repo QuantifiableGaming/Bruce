@@ -9,7 +9,8 @@ Usage:
   python main.py preview --personality mate Hear sample lines from a personality.
   python main.py ai-setup                   Turn on AI lines with Claude or ChatGPT, and test them.
   python main.py ai-test --personality sassy  Show sample AI lines for a personality.
-  python main.py install-tesseract          Install Tesseract (the number reader).
+  python main.py install-tesseract          Install Tesseract (an optional word reader).
+  python main.py text-test                  Compare the word readers on your recordings. Writes logs/text_test.txt.
   python main.py install-voice-model        Download the Vosk speech model for "Bruce".
   python main.py mics                       List microphones.
   python main.py listen                     Test voice commands ("Bruce, how am I doing?") without the game.
@@ -46,6 +47,52 @@ from vcoach.session import Session
 from vcoach.util import crop_box, load_yaml
 from vcoach.vision import EnemyDetector
 from vcoach.voice import Voice, list_voices, start_hotkey
+
+
+def run_self_test():
+    """Run the test suite on this PC and print a short result."""
+    if not os.path.isfile(os.path.join("tests", "test_logic.py")):
+        print("The tests folder is not here (a shared copy leaves it out). Nothing to test.")
+        return 1
+    try:
+        import pytest
+    except ImportError:
+        print("pytest is not installed. Click Install packages on the Home page, or run: python -m pip install pytest")
+        return 1
+    import subprocess
+
+    print("Running the self-test. It takes about 30 seconds...\n")
+    proc = subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests"],
+                          capture_output=True, text=True, encoding="utf-8", errors="replace")
+    out = proc.stdout + proc.stderr
+    os.makedirs("logs", exist_ok=True)
+    with open(os.path.join("logs", "self_test.txt"), "w", encoding="utf-8") as f:
+        f.write(out)
+    lines = out.strip().splitlines()
+    fails = [ln for ln in lines if ln.startswith(("FAILED", "ERROR"))]
+    for ln in fails[:20]:
+        print(ln)
+    print(lines[-1] if lines else "No output.")
+    code = proc.returncode
+    print()
+    if code == 0:
+        print("SELF-TEST PASSED. The coach's logic works on this PC.")
+    else:
+        print("SELF-TEST FAILED. Send logs\\self_test.txt to Claude.")
+    return int(code)
+
+
+def capture_fps(cfg, keys_on, recording):
+    """Fewer frames when nothing needs every frame.
+
+    Every frame is needed only for the picture motion check (no key reader), the crosshair
+    check, and recordings. The ammo and HUD reads need 20 frames a second at most.
+    """
+    fps = int(cfg["fps"])
+    low = int(cfg.get("low_fps", 20))
+    if keys_on and not recording and not cfg["checks"]["crosshair"].get("enabled", True):
+        return min(fps, low)
+    return fps
 
 
 def banner_every(cfg):
@@ -129,8 +176,27 @@ def run_live(cfg, args):
 
     voice = Voice(silent=args.silent, eleven=None if args.silent else eleven_from_config(cfg))
     start_hotkey(cfg["coach"]["mute_hotkey"], voice.toggle_mute)
+    from vcoach.keys import InputLog, start_listener as start_key_listener
+
+    inputs = InputLog()
+    key_listeners = start_key_listener(cfg, inputs)
+    from vcoach.obs_replay import from_config as obs_from_config
+
+    obs = obs_from_config(cfg)
+    if obs:
+        problems = obs.check()
+        for p in problems:
+            print("[replay] " + p)
+        if not problems:
+            print('[replay] OBS is ready. Say "Bruce, replay that" for an instant replay on stream.')
+    from vcoach.twitch_chat import from_config as chat_from_config
+
+    chat = chat_from_config(cfg)
+    if chat:
+        chat.start()
     session = Session(cfg, make_picker(cfg, args), voice, args.log,
-                      banner_log=os.path.join("logs", "banner_reads.txt"))
+                      banner_log=os.path.join("logs", "banner_reads.txt"),
+                      inputs=inputs if key_listeners else None, obs=obs, chat=chat)
     shot_key = str(cfg["coach"].get("screenshot_hotkey") or "f9")
     shot = threading.Event()
     start_hotkey(shot_key, shot.set)
@@ -143,7 +209,10 @@ def run_live(cfg, args):
         recorder = MatchRecorder(cfg)
     worker = HudWorker(HudReader(cfg), recorder)
     worker.start()
-    source = ScreenSource(cfg["monitor"], cfg["fps"])
+    fps = capture_fps(cfg, bool(key_listeners), bool(recorder) or bool(args.log))
+    if fps < cfg["fps"]:
+        print(f"[capture] {fps} frames a second: the keys judge your shots, so the coach needs fewer frames.")
+    source = ScreenSource(cfg["monitor"], fps)
     print(f"Coach running. Press {cfg['coach']['mute_hotkey'].upper()} to mute. "
           f"Press {shot_key.upper()} to save a screenshot. Press Ctrl+C to stop.")
     next_stop_check = 0.0
@@ -163,10 +232,19 @@ def run_live(cfg, args):
             for kind, et, value in worker.drain():
                 if kind == "hud":
                     session.hud(et, value[0], value[1], None, *value[2:4])
+                elif kind == "stat":
+                    session.shot_error(et, value)
                 else:
                     session.scene(kind, et, value)
             for text in drain(commands):
                 session.command(t, text)
+            if session.follow_up_due and listener and not voice.busy():
+                session.follow_up_due = False
+                listener.open_follow_up(session.follow_up_s)
+                print(f"[voice] Listening {session.follow_up_s:g} s for a follow-up question (no \"Bruce\" needed).")
+            if chat:
+                for user, text in drain(chat.messages):
+                    session.chat_message(t, user, text)
     except KeyboardInterrupt:
         print("Stopping.")
     finally:
@@ -176,6 +254,10 @@ def run_live(cfg, args):
             recorder.close()
         if listener:
             listener.stop()
+        for kl in key_listeners:
+            kl.stop()
+        if chat:
+            chat.stop()
         session.close()
         print("Coach stopped.")
 
@@ -201,9 +283,10 @@ def run_replay(cfg, args):
         if frame is None:
             break
         session.frame(t, frame)
+        session.shot_error(t, reader.shooting_error(frame))   # Every frame, as in the live coach.
         if i % hud_every == 0:
             ammo, health = reader.ammo_health(frame)
-            session.hud(t, ammo, health, None, reader.spectating(frame), reader.shooting_error(frame))
+            session.hud(t, ammo, health, None, reader.spectating(frame), None)
             if hud_reads % b_every == 0:
                 for kind, et, value in read_scene(reader, t, frame, scene_state):
                     session.scene(kind, et, value)
@@ -232,6 +315,10 @@ def run_listen(cfg, args):
                 session.command(time.perf_counter(), commands.get(timeout=0.5))
             except queue.Empty:
                 pass
+            if session.follow_up_due and not voice.busy():
+                session.follow_up_due = False
+                listener.open_follow_up(session.follow_up_s)
+                print(f"Listening {session.follow_up_s:g} s for a follow-up (no wake word needed).")
     except KeyboardInterrupt:
         pass
     listener.stop()
@@ -287,18 +374,31 @@ def run_editor(args, panel=False):
     print("Closed.")
 
 
-def _ai_try(cfg, personality, count=4, show_errors=True):
-    """Ask the AI for sample lines. Returns True when at least one worked."""
+def _ai_try(cfg, personality, count=4, show_errors=True, speak=False):
+    """Ask the AI for sample lines. Returns True when at least one worked.
+    With speak=True the coach also says each line in this personality's voice."""
     from vcoach.ai import AIClient, clean_line, load_secrets, sample_prompts, system_prompt
     from vcoach.personality import load
 
     ai_cfg = cfg.get("ai", {})
     client = AIClient(ai_cfg, load_secrets(ai_cfg.get("secrets_file", "secrets.yaml")))
+    if client.provider == "glm":
+        print("GLM writes only the match review. The coach does not speak GLM lines in a match.")
+        print("This test only checks that GLM answers.\n")
     if not client.enabled:
         print(f"AI is not ready: {client.reason}")
         return False
     lines = load(personality)
     print(f"Testing {client.provider} ({client.model}) with the {lines['name']} personality...\n")
+    voice = None
+    if speak and client.provider != "glm":
+        try:
+            v = lines.get("voice", {})
+            voice = Voice(cfg["coach"].get("voice_rate") or v.get("rate", 180),
+                          voice_name=cfg["coach"].get("voice_name") or v.get("name_contains", ""),
+                          eleven=eleven_from_config(cfg), personality=personality)
+        except Exception as exc:      # The text test still works without sound.
+            print(f"(No sound: {exc})")
     ok = False
     for kind, user in sample_prompts(lines)[:count]:
         start = time.perf_counter()
@@ -308,19 +408,25 @@ def _ai_try(cfg, personality, count=4, show_errors=True):
             ms = (time.perf_counter() - start) * 1000
             print(f"  {kind:7} ({ms:5.0f} ms)  {text}")
             ok = ok or bool(text)
+            if voice and text:
+                voice.say(text)
         except Exception as exc:
             print(f"  {kind:7} FAILED: {exc}")
             if show_errors:
                 msg = str(exc)
-                if "401" in msg or "403" in msg:
+                if "1010" in msg:
+                    print("\n  The AI service's firewall blocked the request (error 1010). Update the coach to the newest version.")
+                elif "401" in msg or "403" in msg:
                     print("\n  The API key is wrong or has no access. Run the AI setup again with a new key.")
                 elif "404" in msg or "model" in msg.lower():
-                    print("\n  The model name may be wrong. Change claude_model or chatgpt_model under ai: in config.yaml.")
+                    print("\n  The model name may be wrong. Change the model on the Settings page (AI coach card).")
                 elif "429" in msg:
                     print("\n  Rate limit or no credit. Check the billing page of your AI account.")
                 elif "Network" in msg:
                     print("\n  No connection to the AI service. Check your internet connection.")
             break
+    if voice:
+        voice.wait()
     timeout = float(ai_cfg.get("timeout_s", 4))
     if ok:
         print(f"\nThe coach waits up to {timeout:g} s for the AI, then uses the scripted line.")
@@ -340,9 +446,12 @@ def run_ai_setup(cfg, args):
     print("It never gets screenshots. You pay the AI company for use (a few cents for many matches).\n")
     print("  1. Claude (Anthropic)  - key from console.anthropic.com")
     print("  2. ChatGPT (OpenAI)    - key from platform.openai.com")
-    print("  3. Turn the AI off (scripted lines only)\n")
-    choice = input("Choose 1, 2 or 3: ").strip()
-    provider = {"1": "claude", "2": "chatgpt", "3": "off"}.get(choice)
+    print("  3. GLM 5.3 Flash, FREE - match review only. Free key from openrouter.ai/keys")
+    print("  4. Groq, FREE          - fast enough for live lines. Free key from console.groq.com/keys")
+    print("  5. Custom AI           - Ollama on this PC, Gemini, Mistral... (OpenAI chat format)")
+    print("  6. Turn the AI off (scripted lines only)\n")
+    choice = input("Choose 1 to 6: ").strip()
+    provider = {"1": "claude", "2": "chatgpt", "3": "glm", "4": "groq", "5": "custom", "6": "off"}.get(choice)
     if provider is None:
         raise SystemExit("No change made.")
     if provider == "off":
@@ -354,16 +463,25 @@ def run_ai_setup(cfg, args):
         shutil.copy("secrets.example.yaml", secrets_path)
     from vcoach.ai import DEFAULTS, load_secrets
 
+    if provider == "custom":
+        url = input(f"Address up to /v1 [{cfg['ai'].get('custom_base_url') or DEFAULTS['custom']['base_url']}]: ").strip()
+        model = input(f"Model name [{cfg['ai'].get('custom_model') or DEFAULTS['custom']['model']}]: ").strip()
+        if url:
+            set_config_value(args.config, ["ai", "custom_base_url"], url.rstrip("/"))
+        if model:
+            set_config_value(args.config, ["ai", "custom_model"], model)
     key_name = DEFAULTS[provider]["secret"]
     existing = (load_secrets(secrets_path).get(key_name) or "").strip()
     prompt = "Paste your API key and press Enter (it does not show on screen)"
+    if DEFAULTS[provider].get("key_optional"):
+        prompt += ". For Ollama on this PC, press Enter"
     if existing:
         prompt += ", or press Enter to keep the saved key"
     key = getpass.getpass(prompt + ": ").strip()
     if key:
         set_config_value(secrets_path, [key_name], key)
         print(f"Key saved in {secrets_path}. Keep that file private.")
-    elif not existing:
+    elif not existing and not DEFAULTS[provider].get("key_optional"):
         raise SystemExit("No key given. No change made.")
 
     set_config_value(args.config, ["ai", "provider"], provider)
@@ -379,7 +497,7 @@ def run_ai_test(cfg, args):
     choice = args.personality or cfg["coach"].get("personality", "calm")
     if choice in ("random", "mix"):
         choice = "calm"
-    _ai_try(cfg, choice)
+    _ai_try(cfg, choice, speak=not getattr(args, "silent", False))
 
 
 def run_calibrate(cfg, args):
@@ -435,6 +553,10 @@ def main():
     mi.add_argument("--json", action="store_true")
     sub.add_parser("ai-setup")
     sub.add_parser("install-tesseract")
+    sub.add_parser("text-test")
+    sub.add_parser("self-test")
+    an = sub.add_parser("analyze")
+    an.add_argument("report", nargs="?", help="A report in the reports folder. Default: the newest one.")
     sub.add_parser("install-voice-model")
     ait = sub.add_parser("ai-test")
     ait.add_argument("--personality", default=argparse.SUPPRESS)
@@ -484,6 +606,32 @@ def main():
 
         path = load_yaml(args.config).get("voice_control", {}).get("model_path", "models/vosk-model-small-en-us-0.15")
         raise SystemExit(0 if download_model(path) else 1)
+    if args.mode == "self-test":
+        raise SystemExit(run_self_test())
+    if args.mode == "analyze":
+        from vcoach.ai import AIClient, load_secrets
+        from vcoach.analysis import analyze_report
+
+        cfg = load_yaml(args.config)
+        ai_cfg = cfg.get("ai", {}) or {}
+        client = AIClient(ai_cfg, load_secrets(ai_cfg.get("secrets_file", "secrets.yaml")))
+        if not client.enabled:
+            raise SystemExit(f"The AI coach is off: {client.reason} Set it up on the AI coach page first.")
+        folder = cfg.get("reports_dir", "reports")
+        names = sorted(n for n in os.listdir(folder) if n.endswith(".md")) if os.path.isdir(folder) else []
+        name = os.path.basename(args.report) if args.report else (names[-1] if names else None)
+        if not name or not os.path.isfile(os.path.join(folder, name)):
+            raise SystemExit("No report found.")
+        print(f"Asking {client.model} for a review of {name}. This can take up to a minute...")
+        review = analyze_report(os.path.join(folder, name), client, timeout=float(ai_cfg.get("analysis_timeout_s", 90)))
+        if not review:
+            raise SystemExit("The AI gave no usable review. Try again later.")
+        print("\n" + review + "\n\nThe review is at the end of the report.")
+        return
+    if args.mode == "text-test":
+        from vcoach.texttest import run_text_test
+
+        raise SystemExit(run_text_test(load_yaml(args.config)))
     if args.mode == "install-tesseract":
         from vcoach.tesseract_setup import install_tesseract
 

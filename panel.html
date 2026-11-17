@@ -219,6 +219,19 @@
           <label><input type="radio" name="prov" value="off"><div><b>Off</b><div class="note">Scripted lines only. Free.</div></div></label>
           <label><input type="radio" name="prov" value="claude"><div><b>Claude</b><div class="note">Anthropic. Key from console.anthropic.com</div></div></label>
           <label><input type="radio" name="prov" value="chatgpt"><div><b>ChatGPT</b><div class="note">OpenAI. Key from platform.openai.com</div></div></label>
+          <label><input type="radio" name="prov" value="groq"><div><b>Groq (free)</b><div class="note">Fast enough for live lines. Free key from console.groq.com/keys.</div></div></label>
+          <label><input type="radio" name="prov" value="custom"><div><b>Custom AI</b><div class="note">Any service with the OpenAI chat format: Ollama on this PC, Gemini, Mistral...</div></div></label>
+          <label><input type="radio" name="prov" value="glm"><div><b>GLM 5.3 Flash (free)</b><div class="note">Match review only, no live lines. Free key from openrouter.ai/keys.</div></div></label>
+        </div>
+        <div id="customRow" style="display:none">
+          <label class="f"><span>Address <span class="note">up to and with /v1</span></span>
+            <input type="text" id="custUrl" placeholder="http://localhost:11434/v1">
+            <span class="note">Ollama: http://localhost:11434/v1 &middot; Gemini: https://generativelanguage.googleapis.com/v1beta/openai &middot; Mistral: https://api.mistral.ai/v1</span>
+          </label>
+          <label class="f"><span>Model</span>
+            <input type="text" id="custModel" placeholder="llama3.2">
+            <span class="note">The model name from the service's docs. Ollama: the name in <code>ollama list</code>.</span>
+          </label>
         </div>
         <label class="f" id="keyRow"><span>API key <span class="note" id="keyState"></span></span>
           <input type="password" id="keyIn" placeholder="Paste a new key, or leave empty to keep the saved key" autocomplete="off">
@@ -230,7 +243,9 @@
             <label><input type="checkbox" class="usefor" value="mental"> Resets and praise</label>
             <label><input type="checkbox" class="usefor" value="answers"> Answers to &ldquo;Bruce&rdquo;</label>
             <label><input type="checkbox" class="usefor" value="match_end"> End of match</label>
+            <label><input type="checkbox" class="usefor" value="review"> Written match review</label>
           </span>
+          <span class="note" id="useNote">Each spoken line is one AI request, about 25 to 30 in a match. The written review is one request for each match.</span>
         </label>
         <div style="display:flex; gap:8px">
           <button class="btn ok" id="aiSave">Save</button>
@@ -332,6 +347,14 @@
     <section class="page" id="p-reports">
       <h1>Match reports</h1>
       <p class="sub">The coach saves one report per match: the result, the stats for each round, and what it said.</p>
+      <div class="card md" id="progressCard">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px">
+          <h2 style="margin:0">Progress</h2>
+          <button class="btn small" id="seasonBtn">Start a new season</button>
+        </div>
+        <p class="note">Your last matches, newest first. In the four coach columns, lower is better. An empty cell means too little data. Combat score and K/D/A come from the scoreboard: open the SUMMARY tab after a match while the coach runs. The debrief compares only matches in the current season.</p>
+        <div id="progress" style="overflow-x:auto"></div>
+      </div>
       <div class="rep">
         <div class="rlist" id="rlist"></div>
         <div class="card md" id="rview"><p class="note">Choose a report.</p></div>
@@ -415,8 +438,8 @@ document.addEventListener("click", (e) => { const a = e.target.closest("[data-go
 
 // ---------- background tasks ----------
 async function runTask(kind, opts = {}) {
-  const { title = "Working…", note = "", personality = null, quiet = false } = opts;
-  const t = await api("/api/run", { kind, personality });
+  const { title = "Working…", note = "", personality = null, quiet = false, report = null } = opts;
+  const t = await api("/api/run", { kind, personality, report });
   if (!t) return null;
   if (!quiet) { $("mTitle").textContent = title; $("mNote").textContent = note; $("mLog").innerHTML = ""; $("mSpin").style.display = ""; $("modal").classList.add("open"); }
   let lines = [];
@@ -458,15 +481,19 @@ function renderChecklist(s) {
   const items = [];
   const pk = s.packages_missing.length === 0;
   items.push(row(pk ? "ok" : "bad", "Python packages", pk ? `Python ${s.python}, all packages installed.` : `Missing: ${s.packages_missing.join(", ")}`, pk ? "" : `<button class="btn small primary" data-run="install_packages">Install</button>`));
-  items.push(row(s.tesseract ? "ok" : "bad", "Number reader (Tesseract)", s.tesseract ? `Found: ${esc(s.tesseract)}` : "Needed to read ammo, health and the round banner.", s.tesseract ? "" : `<button class="btn small primary" data-run="install_tesseract">Install</button>`));
+  const tr = s.text_reader === "windows" ? ["ok", "Windows text reader. Nothing to install."]
+    : s.text_reader === "tesseract" ? ["ok", `Tesseract: ${esc(s.tesseract)}`]
+    : ["warn", "Not found. The coach still follows rounds by the score, but it cannot see buy phase, round credits, the match result or your agent. Click Install packages above first. Tesseract is the backup."];
+  items.push(row(tr[0], "Word reader", tr[1], s.text_reader ? `<button class="btn small" data-run="text_test">Test</button>` : `<button class="btn small" data-run="install_tesseract">Install Tesseract</button>`));
   items.push(row(s.screenshot_taken ? "ok" : "warn", "Screen regions", s.screenshot_taken ? `Enemy colour: ${s.enemy_color}. Gun side: ${s.gun_side}. Check them again after a Valorant update.` : "Not set up yet. Take a screenshot and place the boxes.", `<button class="btn small ${s.screenshot_taken ? "" : "primary"}" data-go="regions">Open</button>`));
   items.push(row(s.voice_model || !s.voice_enabled ? "ok" : "warn", "Voice commands", !s.voice_enabled ? "Turned off in Settings." : s.voice_model ? `Ready. Say "${cap(s.wake_word)}" then a command.` : "The voice model is not downloaded yet.", s.voice_enabled && !s.voice_model ? `<button class="btn small primary" data-run="install_voice_model">Download</button>` : `<button class="btn small" data-go="voice">Test</button>`));
   items.push(row("ok", "Personality", `${esc(pName)}`, `<button class="btn small" data-go="personality">Change</button>`));
-  const ai = s.ai_provider === "off" ? ["ok", "Off – scripted lines."] : s.ai_ready ? ["ok", `${s.ai_provider === "claude" ? "Claude" : "ChatGPT"} is on.`] : ["warn", `${esc(s.ai_reason)}`];
+  const ai = s.ai_provider === "off" ? ["ok", "Off – scripted lines."] : s.ai_ready ? ["ok", (s.ai_provider === "glm" ? "GLM (free) is on for the match review." : `${({claude: "Claude", chatgpt: "ChatGPT", groq: "Groq (free)", custom: "Custom AI"})[s.ai_provider] || s.ai_provider} is on.`)] : ["warn", `${esc(s.ai_reason)}`];
   items.push(row(ai[0], "AI coach (optional)", ai[1], `<button class="btn small" data-go="ai">${s.ai_provider === "off" ? "Set up" : "Change"}</button>`));
+  if (s.self_test_available) items.push(row("ok", "Self-test", "Checks the coach's logic on this PC, with real game pictures. Takes about 30 seconds.", `<button class="btn small" data-run="self_test">Run</button>`));
   $("checklist").innerHTML = items.join("");
 
-  const blockers = !pk || !s.tesseract;
+  const blockers = !pk;
   const hb = $("heroBtn");
   if (s.coach_running) { $("heroTitle").textContent = "The coach is running."; $("heroText").textContent = "Play Valorant. The coach speaks between rounds. Click Stop coach at the top to end."; hb.style.display = "none"; }
   else if (blockers) { $("heroTitle").textContent = "A few things need installing first."; $("heroText").textContent = "Click Install next to each red item below."; hb.style.display = "none"; }
@@ -475,7 +502,7 @@ function renderChecklist(s) {
 }
 document.addEventListener("click", (e) => {
   const b = e.target.closest("[data-run]"); if (!b) return;
-  const titles = { install_packages: "Installing Python packages…", install_tesseract: "Installing Tesseract…", install_voice_model: "Downloading the voice model…" };
+  const titles = { install_packages: "Installing Python packages…", install_tesseract: "Installing Tesseract…", install_voice_model: "Downloading the voice model…", text_test: "Testing the word readers on your recordings…", self_test: "Running the self-test…" };
   const notes = { install_tesseract: "Click Yes if Windows asks. Keep the default install folder." };
   runTask(b.dataset.run, { title: titles[b.dataset.run], note: notes[b.dataset.run] || "" });
 });
@@ -504,7 +531,7 @@ function renderCoachState(on) {
 }
 async function startCoach() {
   await refresh();
-  if (ST && (ST.packages_missing.length || !ST.tesseract)) {
+  if (ST && ST.packages_missing.length) {
     toast("Some parts are missing. Install them on the Home page first.", true, 5000);
     go("home"); return;
   }
@@ -677,21 +704,32 @@ $("listenStop").onclick = async () => { await api("/api/listen/stop", {}); toast
 async function loadAI() {
   await refresh(); const s = ST; if (!s) return;
   document.querySelectorAll('input[name=prov]').forEach((r) => (r.checked = r.value === s.ai_provider));
-  const uses = s.ai_use_for.length ? s.ai_use_for : ["tips", "mental", "answers", "match_end"];
+  const uses = s.ai_use_for;
   document.querySelectorAll(".usefor").forEach((c) => (c.checked = uses.includes(c.value)));
   updateKeyRow();
-  $("aiState").innerHTML = s.ai_provider === "off" ? "AI is off. The coach uses its scripted lines." : s.ai_ready ? `<span style="color:var(--ok)">Ready.</span> Model: ${esc(s.ai_models[s.ai_provider])}. Click <b>Test AI lines</b> to hear how it writes.` : `<span style="color:var(--warn)">${esc(s.ai_reason)}</span>`;
+  $("aiState").innerHTML = s.ai_provider === "off" ? "AI is off. The coach uses its scripted lines." : s.ai_ready ? `<span style="color:var(--ok)">Ready.</span> Model: ${esc(s.ai_models[s.ai_provider])}. Click <b>Test AI lines</b> to see and hear how it writes.` : `<span style="color:var(--warn)">${esc(s.ai_reason)}</span>`;
 }
 function provider() { return (document.querySelector('input[name=prov]:checked') || {}).value || "off"; }
 function updateKeyRow() {
   const p = provider();
+  const reviewOnly = (ST?.ai_review_only || []).includes(p);
+  document.querySelectorAll(".usefor").forEach((c) => {
+    if (c.value === "review") return;
+    c.disabled = reviewOnly; c.parentElement.style.opacity = reviewOnly ? 0.4 : 1;
+  });
+  $("useNote").textContent = reviewOnly
+    ? "GLM writes the match review only. The coach uses its scripted lines during the match."
+    : "Each spoken line is one AI request, about 25 to 30 in a match. The written review is one request for each match.";
   $("keyRow").style.display = p === "off" ? "none" : "";
-  if (ST && p !== "off") $("keyState").innerHTML = ST.ai_keys[p] ? '<span style="color:var(--ok)">– a key is saved</span>' : '<span style="color:var(--warn)">– no key saved yet</span>';
+  $("customRow").style.display = p === "custom" ? "" : "none";
+  if (ST && p === "custom" && !$("custUrl").value) { $("custUrl").value = ST.ai_custom_url || ""; $("custModel").value = ST.ai_models.custom || ""; }
+  if (ST && p !== "off") $("keyState").innerHTML = ST.ai_keys[p] ? '<span style="color:var(--ok)">– a key is saved</span>'
+    : p === "custom" ? '<span class="note">– not needed for Ollama on this PC</span>' : '<span style="color:var(--warn)">– no key saved yet</span>';
 }
 document.querySelectorAll('input[name=prov]').forEach((r) => (r.onchange = updateKeyRow));
 $("aiSave").onclick = async () => {
   const use_for = [...document.querySelectorAll(".usefor:checked")].map((c) => c.value);
-  if (await api("/api/ai", { provider: provider(), key: $("keyIn").value, use_for })) { $("keyIn").value = ""; toast("AI settings saved."); loadAI(); }
+  if (await api("/api/ai", { provider: provider(), key: $("keyIn").value, use_for, custom_base_url: $("custUrl").value, custom_model: $("custModel").value })) { $("keyIn").value = ""; toast("AI settings saved."); loadAI(); }
 };
 $("aiTest").onclick = async () => {
   await $("aiSave").onclick();
@@ -708,6 +746,7 @@ async function loadSettings() {
     let ctl;
     if (it.type === "bool") ctl = `<label class="switch"><input type="checkbox" id="${id}" ${v ? "checked" : ""}><span></span></label>`;
     else if (it.type === "str") ctl = `<input type="text" id="${id}" value="${esc(v ?? "")}">`;
+    else if (it.type === "secret") ctl = `<input type="password" id="${id}" autocomplete="off" placeholder="${it.is_set ? "Saved. Type a new one to change it." : "Not set"}">`;
     else if (it.type === "choice") ctl = `<select id="${id}">` + it.choices.map((c) => `<option value="${esc(c[0])}" ${c[0] === v ? "selected" : ""}>${esc(c[1])}</option>`).join("") + `</select>`;
     else {
       const step = it.type === "float" ? 0.1 : 1;
@@ -726,6 +765,7 @@ function collect() {
   const out = [];
   SET.forEach((g, gi) => g.items.forEach((it, ii) => {
     const el = $(`s_${gi}_${ii}`);
+    if (it.type === "secret") { if (el.value.trim()) out.push({ path: it.path, value: el.value }); return; }
     let v = it.type === "bool" ? el.checked : (it.type === "str" || it.type === "choice") ? el.value : +el.value;
     if (JSON.stringify(v) !== JSON.stringify(it.type === "str" ? (it.value ?? "") : it.value)) out.push({ path: it.path, value: v });
   }));
@@ -760,7 +800,24 @@ function md(text) {
   }
   return html;
 }
+async function loadProgress() {
+  const h = await api("/api/history"); if (!h) return;
+  if (!h.rows.length) { $("progress").innerHTML = '<p class="note">No matches yet. The list starts with your next match.</p>'; return; }
+  const cell = (v, unit) => (v === null || v === undefined ? "" : v + unit);
+  const rows = h.rows.map((r) => r.season !== undefined
+    ? `<tr><td colspan="10" style="background:var(--panel2)"><b>${esc(r.season)}</b> started ${esc(r.date)}</td></tr>`
+    : `<tr><td>${esc(r.date)}</td><td>${esc(r.result)} ${esc(r.score)}</td><td>${r.rounds}</td><td>${cell(r.combat, "")}</td><td>${cell(r.kda, "")}</td>
+    <td>${cell(r.deaths, "")}</td><td>${cell(r.moving, "%")}</td><td>${cell(r.no_counter, "%")}</td><td>${cell(r.long_sprays, "%")}</td><td>${cell(r.bad_reloads, "")}</td></tr>`).join("");
+  $("progress").innerHTML = `<table><thead><tr><th>Date</th><th>Result</th><th>Rounds</th><th>Combat score</th><th>K/D/A</th><th>Deaths per round</th>
+    <th>First shots while moving</th><th>Stops without a counter-strafe</th><th>Long sprays</th><th>Bad reloads per round</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+$("seasonBtn").onclick = async () => {
+  const name = prompt("Name of the new season (for example: Season 2026 Act 6). The debrief then compares only matches from this season.", "");
+  if (name === null) return;
+  if (await api("/api/season", { name: name.trim() || "New season" })) { toast("New season started."); loadProgress(); }
+};
 async function loadReports() {
+  loadProgress();
   const list = await api("/api/reports"); if (!list) return;
   if (!list.length) { $("rlist").innerHTML = '<p class="note">No reports yet. Play a match with the coach running.</p>'; return; }
   $("rlist").innerHTML = list.map((r, i) => `<button data-rep="${esc(r.name)}" class="${i === 0 ? "sel" : ""}">${new Date(r.time * 1000).toLocaleString()}</button>`).join("");
@@ -768,7 +825,15 @@ async function loadReports() {
 }
 async function showReport(name) {
   document.querySelectorAll("[data-rep]").forEach((b) => b.classList.toggle("sel", b.dataset.rep === name));
-  const r = await api("/api/report/" + encodeURIComponent(name)); if (r) $("rview").innerHTML = md(r.text);
+  const r = await api("/api/report/" + encodeURIComponent(name)); if (!r) return;
+  const has = r.text.includes("## Coach analysis (AI)");
+  const btn = ST?.ai_ready ? `<p><button class="btn" id="aiReview">${has ? "Write the AI review again" : "Write an AI review"}</button> <span class="note">One AI request.</span></p>` : "";
+  $("rview").innerHTML = btn + md(r.text);
+  const b = $("aiReview");
+  if (b) b.onclick = async () => {
+    const out = await runTask("analyze", { title: "Writing the AI review…", note: "This can take up to a minute.", report: name });
+    if (out && out.code === 0) showReport(name);
+  };
 }
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-rep]"); if (b) showReport(b.dataset.rep); });
 async function loadHelp() { const r = await api("/api/guide"); if (r) $("helpView").innerHTML = md(r.text); }

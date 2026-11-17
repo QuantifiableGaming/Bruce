@@ -10,13 +10,14 @@ The program only captures the screen. It does not read game memory, inject into 
 
 | Check | How it works |
 |---|---|
-| Shooting while moving | Reads Valorant's **Shooting Error** stat for the first shot of each burst. Above 1 degree means you moved when you fired. Turn the stat on in Settings > Video > Stats (Text Only). Without the stat, the coach guesses from the picture with optical flow, which is less exact. |
-| Crosshair height | **Off by default.** It looks for the enemy highlight outline near the crosshair. In tests on real games, smokes and abilities gave false results. Turn it on with `checks.crosshair.enabled: true` to try it. |
-| Spraying too long | Reads the ammo counter. It counts the shots in each burst. |
+| Shooting while moving | Reads Valorant's **Shooting Error** stat for the first shot of each burst. Above 1 degree means you moved when you fired. Turn the stat on in Settings > Video > Stats (Text Only). If the stat is not on the screen after 60 seconds with your gun out, the coach asks you once to turn it on. Without the stat, the coach uses your movement keys (W, A, S, D). Without the keys (for example in a replay of a video), it guesses from the picture with optical flow, which is less exact. |
+| Counter-strafing | Uses your movement keys and your fire button. When you stop a strafe before you shoot, the coach checks how you stopped: a short tap on the opposite key (A then D) is a counter-strafe. Letting go of the key and waiting is a slow stop. The report shows how many of your stops used a counter-strafe. The coach gives a tip when more than 60% of your stops in a round are slow. |
+| Crosshair height | **Test version, off by default.** When an enemy outline first shows near the crosshair with your gun out, it compares the top of the outline (the head) with the crosshair. A colour and shape filter rejects fire, lamps, tracers, map lines and smoke. In tests on three real games with yellow outlines, the filter kept about 85% of real enemies and rejected about 95% of false outlines, and the head height was right in about 8 of 10 fights. Turn it on with `checks.crosshair.enabled: true`. Yellow outlines give the best results. |
+| Spraying too long | Reads the ammo counter and counts the shots in each burst. The full magazine size tells the weapon (for example 12 Classic, 25 Vandal, 30 Phantom, 100 Odin), and each weapon has its own limit in `checks.long_spray.per_magazine`. Ares and Odin have no spray tips, because they are made to spray. |
 | Reloading at bad times | Flags a reload when you had ammo left and took damage in the last 2.5 seconds. |
 | Mental coach | Gives a reset after a loss streak or a lost lead. It gives credit for clutches, aces, and wins after a streak. It gives a "one focus" message after two lost rounds. |
 | Voice commands | Say "Bruce" and ask a question or give a command. See "Talk to the coach". |
-| AI coach (optional) | Claude or ChatGPT writes the coach lines, so they sound less scripted. See "AI coach". |
+| AI coach (optional) | Claude, ChatGPT, Groq (free) or a Custom AI writes the coach lines and a review after each match. The free GLM model writes the review only. See "AI coach". |
 
 The coach speaks a maximum of one message per round. After losses, a mental message takes priority over a tip. When nothing needs attention, it stays quiet. It does not repeat a line in the same match until it has used every line in that list.
 
@@ -32,7 +33,7 @@ The Control Panel is a local website for all setup and use. Double-click **Valor
 | Screen regions | Take a screenshot and drag the boxes. Set the enemy colour and gun side. |
 | Personality | Hear each coach and choose one. |
 | Voice & mic | Choose the microphone. Test the wake word. |
-| AI coach | Turn on Claude or ChatGPT, save your key, and test the lines. |
+| AI coach | Turn on Claude, ChatGPT or GLM (free), save your key, and test the lines. |
 | Settings | Choose the Windows voice and speed, and get more voices. Change the checks, voice commands, AI timing, and screen capture. |
 | Reports | Read the report for each match. |
 | Help | Read the quick start guide. |
@@ -53,22 +54,22 @@ To update, unzip the new version over the coach folder. After an update, the coa
 
 | File | What it does |
 |---|---|
-| `install.bat` | Installs the Python packages, Tesseract, and the voice model. It can also make the desktop icons, then opens the Control Panel. |
+| `install.bat` | Installs the Python packages and the voice model. It offers Tesseract only if the Windows text reader does not work. It can also make the desktop icons, then opens the Control Panel. |
 | `Coach Setup.bat` | Opens the Control Panel. Desktop icon: gear. |
 | `Start Coach.bat` | Starts the coach without the panel (`main.py live`). Desktop icon: crosshair. |
 | `Classic Setup Menu.bat` | The older text menu with the same tools. Use it if the panel does not work. |
 | `editor.html` | The visual region editor. Open it from the Setup menu, so Save can write to `config.yaml`. |
 | `create_shortcuts.bat` | Creates the two icon shortcuts in the coach folder and on the desktop. Run it again if you move the folder. |
 | `Make Share Zip.bat` | Makes a zip that is safe to give to a friend. Your keys, settings, recordings and reports stay out. It is not in the share zip. |
-| `Split Video.bat` | Drag a game video onto it. It cuts the video into parts under 400 MB in a `parts` folder next to the video, for replay tests. It is not in the share zip. |
+| (drop a video) | Drag a game video onto the Valorant Coach shortcut or `Start Coach.bat`. It cuts the video into parts of about 250 MB in a `parts` folder next to the video, for replay tests. The coach does not start. |
 
 A `.bat` file cannot have its own icon in Windows. The crosshair and gear icons show only on the shortcuts.
 
 ## Setup (Windows)
 
 1. Install Python 3.15 (or 3.14) from python.org/downloads. Use the 64-bit Windows installer. On the first installer screen, tick "Add python.exe to PATH". The coach is tested on Python 3.14 and 3.15.
-2. Install Tesseract OCR. install.bat offers to install it (it tries winget, then the official GitHub installer). The setup menu (**I**) and the region editor also have an install button. You can also use the Windows installer from the UB Mannheim Tesseract page. Keep the default install folder. The coach finds it there, so you do not need to change PATH.
-3. If Tesseract is not on PATH, set `tesseract_cmd` in `config.yaml` to the full path of `tesseract.exe`.
+2. Words (BUY PHASE, WON, VICTORY, agent names) use the text reader that is built into Windows 10 and 11. It needs no extra program. To check it, click **Test** next to **Word reader** on the Home page. The test compares the readers on your recordings and saves the result in `logs\text_test.txt`.
+3. Tesseract OCR is now only a backup. install.bat offers it only when the Windows text reader does not work. To force a reader, set `text_reader` in `config.yaml` to `windows` or `tesseract` (the default is `auto`). If Tesseract is not on PATH, set `tesseract_cmd` to the full path of `tesseract.exe`.
 4. Open a terminal in this folder.
 5. Double-click `install.bat`, or run `pip install -r requirements.txt`.
 6. In Valorant, set Display Mode to **Windowed Fullscreen**. Exclusive fullscreen can give black screenshots.
@@ -137,6 +138,8 @@ Use `--silent` to print messages instead of speaking them. Use `--personality ra
 | `mate` | Laid-back Aussie mate. Relaxed and friendly. |
 | `sassy` | Cheeky and playful. Roasts your plays, then tells you how to fix them. The roasts get gentler after a loss streak. |
 | `savage` | Funny and mean. Short roasts made for clips. It still tells you the fix. No swearing. |
+| `flirty` | Playful and charming. Cheeky compliments about your plays, then the fix. Safe for streams. |
+| `degen` | **18+ only, not for streams.** Swears, roasts your plays hard and makes dirty jokes, then gives the fix. No explicit sexual content and no slurs. It shows only after you turn on **18+ personality (Degen)** in Settings > Coaching. Random, Mix and Twitch chat votes never pick it. |
 | `random` | Picks a different personality at the start of each match and says which one. |
 | `mix` | Picks a different personality each round. It does not say which one. |
 
@@ -201,7 +204,72 @@ If the recognizer hears "Bruce" as another word, add that word to `voice_control
 | "Bruce, what should I work on?" | Your most common mistake this match. | Between rounds |
 | "Bruce, what's the score?" | Rounds won and lost. | Between rounds |
 
-Coaching questions get an answer only between rounds. After a round ends, the coach answers for 35 seconds, which covers the buy phase. If you ask later, the coach says it will answer after the round, and it answers when the round ends. This keeps the coach within Riot's rule against real-time guidance. Mute, unmute, personality, repeat, and help work at any time.
+### Chat mode ("Hey Bruce")
+
+Say **"Hey Bruce"** to chat, and **"Bruce"** to get coaching.
+
+| You say | What happens |
+|---|---|
+| "Hey Bruce, what music are you into?" | A chat about anything: life, music, food, a joke. The coach answers in character, in one or two short sentences. |
+| "Bruce, how am I doing?" | Coaching: your numbers and your habits. |
+
+- **Follow-up questions.** After an AI answer, the coach listens for 8 seconds. Ask your next question with no "Bruce". A follow-up stays in the same mode (chat or coaching). Short words such as "ok" or "thanks" and the coach's own voice from your speakers are ignored.
+- **Memory.** The AI remembers your last 3 questions and its answers in this match, so "what about my last round?" makes sense. A new match starts a new talk.
+- **When.** Chats and coaching answers play between rounds and in the buy phase only. A question in a live round waits for the round to end. Mute, unmute, help, mark that and replay that still work in chat mode.
+- **No tactics.** In both modes the coach gives no live tactics (positions, sites, utility, economy). That keeps it inside Riot's rules.
+- **Needs an AI** that writes spoken lines (Groq, Claude, ChatGPT or Custom). GLM writes only the match review.
+- **Settings:** `voice_control.follow_up_s` (0 turns follow-ups off), `ai.conversation_memory` and `ai.small_talk` (false turns chat mode off).
+
+### Creator commands (for short videos)
+
+| Say | What happens | When |
+|---|---|---|
+| "Bruce, mark that" / "clip that" | Saves the moment (clock time, round, score) in the match report under "Clips to post", and says "Marked." If you set `creator.clip_hotkey`, it also presses your recording app's clip key. | At once |
+| "Bruce, replay that" | An instant replay on your stream through OBS. See "Instant replay on stream". | At once |
+| "Bruce, start the challenge" | The Range challenge. See "Range challenge". "Bruce, stop the challenge" ends it. | In the Range |
+| "Bruce, say hi to chat" | A short intro line for your stream or video. | At once |
+| "Bruce, sign off" | A short outro line. | At once |
+| "Bruce, rate that round" | A score out of 10 for the last round, with a funny reason. | Between rounds |
+| "Bruce, roast me" | A Savage roast about your most common mistake, whatever personality is on. | Between rounds |
+| "Bruce, hype me up" | A Hype line. | Between rounds |
+| "Bruce, recap" | The score, your deaths, and the habit to fix. | Between rounds |
+
+### Auto-clip highlights
+
+When your team wins a round with an ACE, TEAM ACE or CLUTCH banner, the coach saves a clip by itself. You do not have to say anything. The banners also show for the enemy team and for your teammates, so the coach clips only rounds that your team won, and an ACE or CLUTCH only when you did not die in that round. A teammate's ace in a round where you lived can still be clipped, because the coach does not know your in-game name. The clip comes at the round end, a few seconds after the banner: set your recorder to keep at least the last 20 seconds. It adds a line to "Clips to post" in the match report and presses your clip hotkey. If OBS instant replay is on, it also saves the OBS replay file (`creator.auto_clip_obs: save`), or plays it on stream (`replay`). To add FLAWLESS or THRIFTY, change `creator.auto_clip_moments`. To turn it off, clear **Auto-clip highlights** on the Settings page.
+
+### Shorts pack
+
+Each match report ends with a **Clips to post** table: the clock time, round, score and moment of each clip, with a starter caption and hashtags. The clock time helps you find the moment in your recording. If an AI is on, the AI match review also writes a hook, a caption and hashtags for each clip, from what happened in that round. This uses no extra AI request.
+
+### Range challenge
+
+Say "Bruce, start the challenge" in the Range. Then strafe, stop, and shoot 20 times. The coach counts each first shot after a strafe:
+
+- **Clean:** you stopped with a tap on the opposite key (or, without the key reader, the Shooting Error stat was 1 degree or less).
+- **Slow:** you let go of the key and waited.
+- **Moving:** you were still moving when you shot.
+
+Shots that you fire while you stand still do not count. At the end, the coach says your score and compares it with your best and your last challenge. It also saves a result card for a Short (a 1080 x 1920 picture) in `reports\challenges`, and a line in `reports\challenges.jsonl`. Change the number of stops on the Settings page. The challenge works only outside a match, and a match that starts ends the challenge.
+
+### Twitch chat
+
+The coach can read your Twitch chat. Turn it on in the Control Panel: **Settings > Twitch chat**, and type your channel name. Reading chat needs no account.
+
+| Chat command | What happens |
+|---|---|
+| `!vote savage` | One vote for a personality. Each viewer has one vote in each round. A new vote replaces the old one. At each round end, the personality with the most votes takes over, and the coach says "Chat picked Savage." |
+| `!coach` | The coach answers in chat with your session numbers: score, deaths, moving first shots, counter-strafes and the current coach. One answer each 30 seconds. |
+
+To answer `!coach` in chat, the coach needs a chat account (it can be your own) and an OAuth token for it with the `chat:read` and `chat:edit` scopes. Put the account name and the token in the Twitch chat card. The token goes into `secrets.yaml`. Keep it private, as you would a password. Without a token, the coach reads chat only: votes still work.
+
+Set your name or channel name on the **Settings** page of the Control Panel (Content creator card), so the intro and outro use it. The same card has the recorder clip hotkey. The Movement keys card sets the keys for the counter-strafe check. The lines are in `vcoach/creator_lines.yaml`, and you can change them.
+
+`creator.clip_hotkey` is empty by default. Examples: `alt+f10` (NVIDIA instant replay) or `win+alt+g` (Xbox Game Bar: record the last 30 seconds). The coach then presses keys on your PC. It only sends that one key combination, and only when you ask for it. The anti-cheat sees it as normal key input, but no one can promise how Riot treats it, so use it at your own risk.
+
+**The coach never talks during a live round.** All speech, AI lines too, stops 5 seconds after the buy phase ends, and starts again when the round ends. A line that is still playing at that moment stops in the middle. A line that arrives late (for example a slow AI answer) is not spoken. The coach reads the round timer at the top of the screen to find the round start. In the buy phase, the timer shows how many seconds are left, so the coach knows the start time before it comes. If the coach cannot read the timer, it uses the "BUY PHASE" banner. With no timer and no banner, it stops talking 25 seconds after the score changes. Change these times with `voice_control.stop_after_round_start_s` and `voice_control.silent_after_round_end_s`.
+
+Coaching questions get an answer only between rounds. If you ask during a round, the coach answers when the round ends. Mute, unmute, personality and "mark that" work at any time, but during a live round they work silently.
 
 ### Tips
 
@@ -210,7 +278,7 @@ Coaching questions get an answer only between rounds. After a round ends, the co
 - Your teammates hear you say "Bruce" if your voice chat is open. Use the wake word when push-to-talk is off.
 - To turn voice control off, set `voice_control.enabled` to `false`, or run `python main.py live --no-mic`.
 
-## AI coach (Claude or ChatGPT)
+## AI coach (Claude, ChatGPT, Groq, GLM or Custom)
 
 The coach can use an AI to write its lines, so they sound less scripted. The coach rules still decide when to speak and what about (a tip, a reset, praise, or an answer). The AI only writes the words, in the personality's style.
 
@@ -223,8 +291,11 @@ The AI gets short text facts only: the score, the losing streak, the mistake cou
 1. Get an API key:
    - **Claude:** console.anthropic.com > API keys. Add credit on the Billing page.
    - **ChatGPT:** platform.openai.com > API keys. Add credit on the Billing page.
+   - **Groq (free):** make a free account at console.groq.com, then go to console.groq.com/keys. Groq is fast enough for the spoken lines between rounds. The free limits differ for each model.
+   - **Custom AI:** any service that takes the OpenAI chat format. Give the address up to and with `/v1`, the model name and a key. For Ollama on your own PC, use `http://localhost:11434/v1` and no key. Ollama uses your graphics card, so it suits the match review better than live lines. Other examples: Google Gemini (`https://generativelanguage.googleapis.com/v1beta/openai`) and Mistral (`https://api.mistral.ai/v1`).
+   - **GLM 5.3 Flash (free):** make a free account at openrouter.ai, then go to openrouter.ai/keys. No credit is needed. The free model allows 20 requests a minute and 50 a day. After a one-time purchase of $10 of OpenRouter credit, the limit is 1,000 a day.
 2. Open **Valorant Coach Setup** and press **A** (AI coach setup). You can also run `python main.py ai-setup`.
-3. Choose Claude or ChatGPT.
+3. Choose Claude, ChatGPT, GLM, Groq or Custom AI. You can also do this on the **AI coach** page of the Control Panel.
 4. Paste your key and press Enter. The key does not show on screen. In the black window, right-click to paste.
 5. The setup sends two test requests and shows the AI lines and how long they took.
 
@@ -237,15 +308,20 @@ To hear what each personality sounds like with the AI, press **T** in the Setup 
 - The AI is told to coach habits and mindset only, never tactical calls. It still answers only between rounds.
 - With the AI on, "Bruce" understands free questions, for example "Bruce, why do I keep losing gunfights?"
 - To keep scripted lines for some messages, remove items from `ai.use_for`: `tips`, `mental`, `answers`, `match_end`.
-- To turn the AI off, run the AI setup and choose 3, or set `ai.provider: off`.
+- To turn the AI off, run the AI setup and choose 4, or set `ai.provider: off`.
+- The free GLM model writes the match review only. During a match, the coach uses its scripted lines. One review uses one of the 50 free requests a day.
+
+### Match review
+
+After each match, the AI writes a review at the end of the match report: a summary, what went well, the two habits to work on with a drill for each, and a comparison with your recent matches. It uses one AI request for each match. The coach waits 60 seconds first (`ai.analysis_delay_s`), so the review can use the scoreboard numbers. To write a review for an older report, open it on the **Reports** page and click **Write an AI review**, or run `python main.py analyze`. To choose, use the **Use the AI for** boxes on the **AI coach** page of the Control Panel: four kinds of spoken lines and **Written match review**. With GLM, only **Written match review** can be chosen.
 
 ### Models and cost
 
-The defaults are `claude-haiku-5-5` and `gpt-5.4-mini`, which are fast and low-cost models. If a model name stops working, change `claude_model` or `chatgpt_model` under `ai:` in `config.yaml`. Each line is a small request. Check the pricing page of your AI provider for current prices.
+The defaults are `claude-haiku-5-5`, `gpt-5.4-mini` and `z-ai/glm-5.3-flash:free`. If a model name stops working, change `claude_model`, `chatgpt_model` or `glm_model` under `ai:` in `config.yaml`. Free models on OpenRouter change often. Any model ID that ends in `:free` works in `glm_model`. Each line is a small request. Check the pricing page of your AI provider for current prices.
 
 ### Keep your key safe
 
-Your key is in `secrets.yaml` in the coach folder. Do not share that file. If you share the coach folder with a friend, delete `secrets.yaml` from the copy first. You can also use the `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` environment variable instead of the file.
+Your key is in `secrets.yaml` in the coach folder. Do not share that file. If you share the coach folder with a friend, delete `secrets.yaml` from the copy first. You can also use the `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `GROQ_API_KEY` or `CUSTOM_AI_API_KEY` environment variable instead of the file.
 
 ## How the coach follows a match
 
@@ -276,15 +352,27 @@ The coach saves a folder `recordings/match_<date>_<time>` with these items:
 
 A Swiftplay match uses about 100 to 200 MB. Delete old recordings when you do not need them. The pictures show your screen, including player names and chat, so check them before you share them.
 
+## CPU use
+
+The coach does the slow picture work only when it needs it:
+
+- **Moving shots.** The picture motion check (optical flow) is slow, so the coach does not run it on each frame. It keeps small copies of the last 2 seconds and measures only the moment before a shot, and only when the Shooting Error stat and the movement keys cannot judge that shot. With the key reader on, it keeps no copies at all.
+- **Enemy search.** The coach looks for enemy outlines only when the crosshair check is on.
+- **Capture rate.** With the key reader on and the crosshair check off, the coach captures 20 frames a second (`low_fps`), not 30.
+
+In a test on a recorded match, the work for each frame went from about 14 ms to about 2 ms, and to almost nothing with the key reader on.
+
 ## Known limits
 
 - **Rounds and matches** come from OCR of the banner text. If the coach misses rounds, check the banner region and the words under `banner_keywords`.
 - **Screen and language.** The coach is tested at 1920 x 1080 (16:9) only. Other 16:9 sizes should work. 16:10, 4:3 and stretched screens need new boxes on the Screen regions page. Deaths ("SWITCH PLAYER") and the Shooting Error stat are found by their English text. In another game language, the coach misses deaths more often and uses the optical-flow guess for moving shots.
 - **Death detection** looks for "SWITCH PLAYER" (you spectate a teammate). A second check counts a death when you took damage and then your ammo and health went off the screen.
-- **Moving shots without the Shooting Error stat** use optical flow. In tests, that guess matched the stat for about 76% of bursts.
+- **Moving shots without the Shooting Error stat** use your movement keys. With no key data (replays of videos), the coach uses optical flow. In tests, optical flow matched the stat for about 76% of bursts.
+- **Movement keys** are W, A, S and D, and the fire button is the left mouse button. If you use other keys, change the `keys` section in `config.yaml`. To turn the key reader off, set `keys.enabled: false`.
+- **Weapon changes.** The key reader also notes R (reload), the weapon keys 1 to 4, the ability keys Q, E, C and X, and the mouse wheel. An ammo change with no fire click, or right after one of these keys, is a weapon change (for example to Chamber's Headhunter), not shots. An ammo rise with no R key and ammo left is a weapon change, not a reload. Change the keys with `keys.reload` and `keys.switch`.
 - **Weapon swaps** can look like a reload. The reload check only counts a reload when you also took damage, which removes most false alarms.
-- **Spray length** uses one limit for all weapons. If you play SMGs, raise `long_spray.max_shots`.
-- **Crosshair height** is off by default. It uses the highlight color, and smokes, cages, abilities and red objects in the map cause false readings.
+- **Spray length** uses the limit for the weapon, from its magazine size. Change the limits in `checks.long_spray.per_magazine`.
+- **Crosshair height** is a test version and off by default. The filter is tuned for yellow outlines only. Abilities, very close enemies and enemies against a bright sky still give wrong head heights in about 2 of 10 fights.
 - **Riot patches** can move or change the HUD. If the checks stop working after a patch, calibrate again.
 
 ## Rules
@@ -293,9 +381,9 @@ Riot's developer policy rejects in-game apps that give real-time information to 
 
 This program tries to stay on the coaching side:
 
-- It speaks only in agent select, between rounds, and after the match. It never speaks during a round.
+- It speaks only in agent select, between rounds, and after the match. All speech stops 5 seconds after the buy phase ends, AI lines too.
 - It gives tips about your own habits (moving shots, spray length, reloads). It never gives tactical calls, and it never tells you about enemies.
-- It only reads pixels from your screen. It does not read game memory, change game files, or press keys.
+- It reads pixels from your screen. It also notes when your movement, reload, weapon and ability keys and your fire button go down and up, the same way input overlays for streamers do. It does not read game memory, change game files, or send keys to the game. (The optional "mark that" command can press your recorder's clip hotkey. It never presses a game key.)
 
 It is still not approved by Riot, and Riot decides what is allowed. Between-round tips are a grey area.
 
@@ -304,6 +392,16 @@ It is still not approved by Riot, and Riot decides what is allowed. Between-roun
 - Decide for yourself if you want to use it in Ranked.
 - Share it only with friends who read this section. Do not publish it or sell it without Riot approval.
 
+## Progress over many matches
+
+After each match, the coach adds one line to `reports\history.jsonl`. The debrief then compares the match with your last 5 matches and says the biggest change, for example: "Progress: First shots while moving, 32 percent this match, against 50 percent in your last 5 matches." It needs at least 2 earlier matches in the current season. The **Reports** page of the Control Panel shows your last 20 matches in a **Progress** table.
+
+**New season:** click **Start a new season** on the Reports page when a new competitive act starts. The debrief then compares only the matches after that point. Older matches stay in the table, under the season line.
+
+**Scoreboard numbers:** after a match, open the **SUMMARY** tab while the coach still runs. The coach finds your own line (the yellow stripe at the left edge) and reads your combat score, kills / deaths / assists, trades, first bloods, plants and defuses. It adds them to the match report and the Progress table. It needs the same numbers in two readings in a row, and it waits up to 10 minutes after the match.
+
+Reports from before this version are not in the history, because older versions counted some things wrong (deaths, false sprays, moving shots).
+
 ## Share the coach with a friend
 
 Do not zip the coach folder yourself. It has your API keys (`secrets.yaml`), your settings, your screenshots, your recordings and your reports.
@@ -311,6 +409,11 @@ Do not zip the coach folder yourself. It has your API keys (`secrets.yaml`), you
 1. Double-click **Make Share Zip.bat** in the coach folder.
 2. The zip goes into the `share` folder inside the coach folder, for example `share\valorant_coach_share_20261115.zip`. File Explorer opens and shows it. It has only the program files.
 3. Your friend unzips it and runs `install.bat`, then follows QUICKSTART.md. They need their own API keys for the AI coach and for ElevenLabs.
+
+
+## Instant replay on stream (OBS)
+
+Say "Bruce, replay that" (or "instant replay", or "run it back"). The coach tells OBS Studio to save its replay buffer and play it in your replay scene. Your viewers see the replay. Your game screen does not change. Turn it on in the Control Panel: **Settings > Stream instant replay (OBS)**. The OBS steps are on page 2 of `Coach Commands and OBS Setup.pdf`. Page 1 lists all voice commands.
 
 ## ElevenLabs voices (optional)
 
@@ -325,11 +428,11 @@ Each spoken line uses ElevenLabs characters. The coach saves each line in `cache
 
 ## Run the tests
 
-Run `python -m pytest -q`. The tests use synthetic frames and a small set of real HUD pictures in `tests/data`. The tests do not need Valorant or Tesseract.
+Run `python -m pytest -q`. The tests use synthetic frames and a small set of real HUD pictures in `tests/pictures.npz`. The tests are not in the share zip. The tests do not need Valorant or Tesseract.
 
 ## How the coach reads numbers
 
-The coach reads ammo, health, and the round score with its own digit reader (`vcoach/digits.py`). The digit reader compares the screen with stored digit shapes from real Valorant pictures. One read takes about 2 milliseconds, so the coach reads ammo and health 20 times each second. Tesseract reads only the words (banner and menus). To read numbers with Tesseract again, add `number_reader: tesseract` to `config.yaml`.
+The coach reads ammo, health, and the round score with its own digit reader (`vcoach/digits.py`). The digit reader compares the screen with stored digit shapes from real Valorant pictures. One read takes about 2 milliseconds, so the coach reads ammo and health 20 times each second. The Windows text reader reads only the words (banner, menus and agent names). To read numbers with Tesseract again, add `number_reader: tesseract` to `config.yaml`.
 
 The coach also reads two more things with the same method:
 

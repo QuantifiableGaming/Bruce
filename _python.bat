@@ -10,12 +10,12 @@ if not defined PY (
     exit /b 1
 )
 
-%PY% -c "import cv2, numpy, mss, pytesseract, pyttsx3, pynput, ruamel.yaml, win32com.client" >nul 2>nul
+%PY% -c "import cv2, numpy, mss, pyttsx3, pynput, ruamel.yaml, win32com.client, winrt.windows.media.ocr" >nul 2>nul
 if errorlevel 1 (
     echo Some Python packages are missing. Installing them now. This takes a minute...
     echo.
     %PY% -m pip install -r "%~dp0requirements.txt"
-    %PY% -c "import cv2, numpy, mss, pytesseract, pyttsx3, pynput, ruamel.yaml, win32com.client" >nul 2>nul
+    %PY% -c "import cv2, numpy, mss, pyttsx3, pynput, ruamel.yaml, win32com.client, winrt.windows.media.ocr" >nul 2>nul
     if errorlevel 1 (
         echo.
         echo The packages could not be installed. Read the error above, or run install.bat.

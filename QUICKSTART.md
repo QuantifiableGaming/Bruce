@@ -6,7 +6,7 @@ This page gives the minimum steps to install and use the coach. For details and 
 
 1. Install Python 3.15 (or 3.14) from python.org/downloads. Use the 64-bit Windows installer. On the first installer screen, tick "Add python.exe to PATH".
 2. Unzip this folder to a location you will keep, for example `C:\Games\valorant_coach`.
-3. Double-click `install.bat`. It installs the Python packages, offers to install Tesseract (press **Y**), and downloads the voice model for "Bruce".
+3. Double-click `install.bat`. It installs the Python packages and downloads the voice model for "Bruce". Words on the screen are read by the text reader built into Windows. If that does not work on your PC, install.bat offers Tesseract as a backup (press **Y**).
 4. When it asks, press **Y** to put the two icons on your desktop:
    - **Valorant Coach Setup** (gear icon) opens the Control Panel in your web browser.
    - **Valorant Coach** (crosshair icon) starts the coach without the panel.
@@ -17,7 +17,7 @@ This page gives the minimum steps to install and use the coach. For details and 
 1. Set Display Mode to **Windowed Fullscreen**.
 2. Note your Enemy Highlight Color (Settings > General). Purple or yellow gives fewer false alarms than red.
 3. Note which hand shows your weapon (Settings > General > Show Weapon).
-4. Turn on **Shooting Error** (Settings > Video > Stats). Choose **Text Only** or **Text and Graph**. The coach reads this number to know if you moved when you fired. Without it, the coach guesses from the picture, and that guess is right only about 3 times in 4.
+4. Turn on **Shooting Error** (Settings > Video > Stats). Choose **Text Only** or **Text and Graph**. The coach reads this number to know if you moved when you fired. If you forget, the coach reminds you once. The coach also reads your movement keys (W, A, S, D) for the counter-strafe check. If you move with other keys, change them in the Control Panel: **Settings > Movement keys**.
 
 ## Set up the coach in the Control Panel (one time)
 
@@ -32,15 +32,17 @@ Double-click **Valorant Coach Setup**. The Control Panel opens in your web brows
 3. **Personality:** click **Hear it** to listen, then **Use this** on the coach you like. **Random** picks a new coach each match. **Mix** changes the coach every round and does not say which one.
 4. **Voice & mic:** choose your microphone. Click **Start test** and say "Bruce, how am I doing?"
 5. **Settings > Coach voice (optional):** choose a Windows voice and speed, and click **Hear it**. To get more voices, click **Open Windows voice settings**, add a voice, then click **Refresh voice list**.
-6. **AI coach (optional):** choose Claude or ChatGPT, paste your API key, and click **Test AI lines**.
-7. **ElevenLabs voices (optional):** Settings > **ElevenLabs voices**. Paste your key, click **Load my voices**, choose a voice, and click **Hear it**. Each line uses ElevenLabs characters.
+6. **AI coach (optional):** choose an AI, paste its key, and click **Test AI lines**. Free choices: **Groq** (spoken lines and the match review) and **GLM 5.3 Flash** (match review only). **Custom AI** works with Ollama on your PC, Gemini, Mistral and others.
+7. **Content creator (optional):** Settings > **Content creator**. Type your channel name and your recorder's clip hotkey. Highlights (ACE, TEAM ACE, CLUTCH) then save a clip by themselves.
+8. **Stream extras (optional):** Settings > **Stream instant replay (OBS)** and **Twitch chat**. The OBS steps are on page 2 of `Coach Commands and OBS Setup.pdf`.
+9. **ElevenLabs voices (optional):** Settings > **ElevenLabs voices**. Paste your key, click **Load my voices**, choose a voice, and click **Hear it**. Each line uses ElevenLabs characters.
 
 ## Use it (every time)
 
 1. Double-click **Valorant Coach Setup**.
 2. Click **Start coach** at the top of the panel.
 3. Start Valorant and play. The coach speaks in agent select, between rounds, and gives a debrief after the match.
-4. Click **Stop coach** when you finish. The coach saves a report after each match, and you can read it on the **Reports** page.
+4. Click **Stop coach** when you finish. The coach saves a report after each match, and you can read it on the **Reports** page. Each report ends with **Clips to post**: your highlights with captions and hashtags. With an AI on, it also has a written match review.
 
 You can also double-click **Valorant Coach** to start the coach without the panel. To stop it, close its window.
 
@@ -55,12 +57,22 @@ Unzip the new version over the coach folder. Your settings stay: they are in `co
 | Mute or unmute | Press **F8**, or say "Bruce, mute" / "Bruce, unmute". |
 | Save a screenshot for the Screen regions page | Press **F9** during a match. |
 | Ask how you are doing | Say "Bruce, how am I doing?" |
+| Chat about anything | Say "Hey Bruce, ..." between rounds. For 8 seconds after an answer, ask again with no "Bruce". |
 | Ask what to work on | Say "Bruce, what should I work on?" |
 | Ask the score | Say "Bruce, what's the score?" |
 | Repeat the last message | Say "Bruce, say that again." |
 | Ask anything (AI on) | Say "Bruce, why do I keep losing gunfights?" |
 | Change personality | Say "Bruce, switch to sassy", or use the menu at the top of the panel. |
+| Mark a moment for a video | Say "Bruce, mark that". The time goes into the match report. |
+| Instant replay on stream | Say "Bruce, replay that" (needs OBS, see the PDF). |
+| Range challenge | In the Range, say "Bruce, start the challenge". Then do 20 strafe, stop and shoot. |
+| Rate the last round | Say "Bruce, rate that round". |
+| Get roasted | Say "Bruce, roast me". |
+| Save your scoreboard numbers | After the match, open the SUMMARY tab while the coach runs. |
+| Start a new season | Reports page > **Start a new season**. |
 | Change how the coach works | Control Panel > **Settings**. |
+| All voice commands on one page | Open `Coach Commands and OBS Setup.pdf`. |
+| Check that the coach works on your PC | Home page > **Self-test** > **Run**. |
 | Icons are missing or broken | Double-click `create_shortcuts.bat`. Run it again if you move the folder. |
 
 Coaching questions get an answer between rounds. If you ask during a round, the coach answers when the round ends.
@@ -84,6 +96,7 @@ Coaching questions get an answer between rounds. If you ask during a round, the 
 | It does not hear "Bruce" | Voice & mic > **Start test**. Add the word it hears instead to `wake_aliases` in `config.yaml`. |
 | AI lines do not play | AI coach > **Test AI lines** and read the error. The coach uses scripted lines until it works. |
 | Black screenshot | Set Valorant to Windowed Fullscreen. |
+| Something works on another PC but not on yours | Home page > **Self-test** > **Run**. If it fails, send `logs\self_test.txt`. |
 | The panel does not work at all | Double-click `Classic Setup Menu.bat` in the coach folder. It has the same tools in a text menu. |
 
 ## Use at your own risk

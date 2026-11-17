@@ -113,6 +113,10 @@ tips:
   - Your recoil went to the moon. Tap, don't hold.
   - That wasn't a spray. That was a cry for help. Short bursts.
   - The first three shots are aim. The rest are hope. Stop at three.
+  no_counter_strafe:
+  - "You stop like a shopping trolley. Tap the opposite key."
+  - "The enemy shot while you were still sliding to a stop. Counter-strafe."
+  - "Letting go of the key is not a stop. Tap the other one."
   bad_reload:
   - "You reloaded in the middle of a fight. Bold. Wrong, but bold."
   - "Reloading in the open. The enemy said thank you."

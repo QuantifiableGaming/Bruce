@@ -17,6 +17,19 @@ TESSERACT_HELP = ("Tesseract is not installed, or the coach cannot find it. "
                   "github.com/UB-Mannheim/tesseract/wiki into the default folder.")
 
 
+def text_reader_name(cfg):
+    """Which word reader the coach will use: "windows", "tesseract" or None."""
+    choice = str(cfg.get("text_reader", "auto")).lower()
+    if choice in ("auto", "windows"):
+        from . import winocr
+
+        if winocr.available():
+            return "windows"
+    if choice in ("auto", "tesseract") and find_tesseract(cfg.get("tesseract_cmd") or ""):
+        return "tesseract"
+    return None
+
+
 def find_tesseract(configured=""):
     """Return the path to tesseract.exe, or None. Checks the setting, PATH, and the usual folders."""
     import os
@@ -48,16 +61,21 @@ FIXED_REGIONS = {
     "score_right": [0.5583, 0.0278, 0.0250, 0.0333],  # The enemy team's round score.
     "top_left": [0.0, 0.085, 0.42, 0.12],             # Map and mode in agent select. VICTORY or DEFEAT after a match.
     "agent_panel": [0.72, 0.09, 0.18, 0.11],          # Role and agent name in agent select.
+    "result": [0.30, 0.30, 0.40, 0.32],               # The big VICTORY or DEFEAT (and SURRENDERED) at the match end.
 }
+
+RESULT_TEXT = ("VICTORY", "DEFEAT", "DRAW")
 
 
 class HudReader:
     """Reads the game HUD.
 
     Numbers (ammo, health, score) use the fast digit reader in digits.py.
-    Words (banner, menus) use Tesseract OCR. The reader starts tesseract directly
-    and sends the picture through a pipe. This is faster than temporary files,
-    which virus scanners check on every read.
+    Words (banner, menus, agent names) use the text reader built into Windows (winocr.py).
+    When it is not available, the coach uses Tesseract if it is installed. The coach starts
+    tesseract directly and sends the picture through a pipe, which is faster than temporary
+    files. With no word reader, the coach still follows rounds by the score, but it cannot
+    see buy phase, round credits, the match result or the agent you pick.
     Set number_reader to "tesseract" in config.yaml to read numbers with Tesseract.
     """
 
@@ -65,10 +83,8 @@ class HudReader:
     LOOKALIKE = str.maketrans({"0": "O", "1": "I", "5": "S", "8": "B", "$": "S", "|": "I"})
 
     def __init__(self, cfg):
-        path = find_tesseract(cfg.get("tesseract_cmd") or "")
-        if path is None:
-            raise RuntimeError(TESSERACT_HELP)
-        self.exe = path
+        self.exe = find_tesseract(cfg.get("tesseract_cmd") or "")
+        self.text_reader = text_reader_name(cfg)
         self.regions = dict(FIXED_REGIONS)
         self.regions.update(cfg["regions"])
         self.flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -79,8 +95,17 @@ class HudReader:
                 self.digits = DigitReader()
             except Exception as exc:
                 print(f"[reader] The fast digit reader did not load ({exc}). The coach uses Tesseract for numbers.")
+        if self.digits is None and self.exe is None:
+            raise RuntimeError(TESSERACT_HELP)
+        if self.text_reader is None:
+            from . import winocr
+
+            print("[reader] No word reader: the coach cannot read BUY PHASE, round credits, VICTORY or agent names. "
+                  f"Windows text reader: {winocr.error() or 'off'}. Tesseract: not found.")
 
     def ocr(self, img, psm, whitelist=None):
+        if self.exe is None:
+            return ""
         ok, png = cv2.imencode(".png", img)
         if not ok:
             return ""
@@ -142,6 +167,10 @@ class HudReader:
         """Valorant's "Shooting Error" stat in degrees, or None when it is not on the screen."""
         return self.digits.shooting_error(frame) if self.digits else None
 
+    def timer(self, frame):
+        """The round timer at the top centre, in seconds left. None when it is not on the screen."""
+        return self.digits.timer(frame) if self.digits else None
+
     def ammo_health(self, frame):
         """Read ammo and health at the same time."""
         if self.digits:
@@ -150,8 +179,43 @@ class HudReader:
         h = self.pool.submit(self.health, frame)
         return a.result(), h.result()
 
+    def read_text(self, img, psm=7):
+        """All text (letters and numbers) in a black-on-white picture, with the word reader."""
+        if self.text_reader == "windows":
+            from . import winocr
+
+            raw = winocr.read(img)
+            if raw is not None:
+                return raw
+        return self.ocr(img, psm) if self.exe else ""
+
+    def my_scoreboard(self, frame):
+        """Your own line on the end-of-match scoreboard, or None. See scoreboard.py."""
+        if self.text_reader is None:
+            return None
+        from .scoreboard import find_my_row, read_my_row
+
+        if find_my_row(frame) is None:
+            return None
+        return read_my_row(frame, self.read_text)
+
     def _words(self, binary, psm=11):
-        text = re.sub(r"[^A-Z ]", " ", self.ocr(binary, psm).upper().translate(self.LOOKALIKE))
+        if self.text_reader == "windows":
+            from . import winocr
+
+            raw = winocr.read(binary)
+            if raw is None:
+                if self.exe:
+                    print(f"[reader] The Windows text reader failed ({winocr.error()}). The coach now uses Tesseract.")
+                    self.text_reader = "tesseract"
+                    raw = self.ocr(binary, psm)
+                else:
+                    raw = ""
+        elif self.text_reader == "tesseract":
+            raw = self.ocr(binary, psm)
+        else:
+            return None
+        text = re.sub(r"[^A-Z ]", " ", raw.upper().translate(self.LOOKALIKE))
         return " ".join(w for w in text.split() if len(w) >= 3) or None
 
     def banner(self, frame):
@@ -198,6 +262,14 @@ class HudReader:
         _, binary = cv2.threshold(value, 170, 255, cv2.THRESH_BINARY_INV)
         return self._words(binary)
 
+    def result_banner(self, frame):
+        """The big match result in the middle of the screen, for example "SURRENDERED VICTORY"."""
+        img = crop(frame, self.regions["result"])
+        if img.size == 0:
+            return None
+        _, binary = cv2.threshold(img.max(axis=2), 200, 255, cv2.THRESH_BINARY_INV)
+        return self._words(binary)
+
     def agent_panel(self, frame):
         """Read the role and agent name in agent select."""
         img = crop(frame, self.regions["agent_panel"])
@@ -225,9 +297,13 @@ class HudWorker:
         self.latest = None
         self.results = queue.Queue()
         self.stop_event = threading.Event()
+        # The Shooting Error stat shows one shot's value for only about 0.1 s, so it gets its own
+        # reader that looks at every new frame. It reads a small strip at a known place (about 1 ms).
         self.threads = [threading.Thread(target=self._loop, args=(fn, period), daemon=True)
-                        for fn, period in ((self._read_hud, hud_period), (self._read_scene, min_period))]
+                        for fn, period in ((self._read_hud, hud_period), (self._read_scene, min_period),
+                                           (self._read_stat, 0.0))]
         self.last_score_t = None
+        self.last_stat = None
 
     def start(self):
         for th in self.threads:
@@ -253,10 +329,15 @@ class HudWorker:
         ammo, health = self.reader.ammo_health(frame)
         check = getattr(self.reader, "spectating", None)
         spectating = check(frame) if check else None
+        self.results.put(("hud", t, (ammo, health, spectating, None)))   # The stat has its own reader.
+        self._record("save_hud", frame, ammo, health, spectating, self.last_stat)
+
+    def _read_stat(self, t, frame):
         check = getattr(self.reader, "shooting_error", None)
-        shot_error = check(frame) if check else None
-        self.results.put(("hud", t, (ammo, health, spectating, shot_error)))
-        self._record("save_hud", frame, ammo, health, spectating, shot_error)
+        value = check(frame) if check else None
+        self.last_stat = value
+        if value is not None:
+            self.results.put(("stat", t, value))
 
     def _read_scene(self, t, frame):
         events = read_scene(self.reader, t, frame, self)
@@ -301,10 +382,24 @@ def read_scene(reader, t, frame, state):
     events.append(("score", t, score))
     if score is not None:
         state.last_score_t = t
+    check = getattr(reader, "timer", None)
+    if check and score is not None:
+        events.append(("timer", t, check(frame)))
     events.append(("banner", t, reader.banner(frame)))
+    check = getattr(reader, "result_banner", None)
+    if check and score is None:
+        # The match result shows in the middle for a few seconds. A surrender has no results
+        # screen time to wait for, so read it at once.
+        text = check(frame)
+        if text and any(w in text.split() for w in RESULT_TEXT):
+            events.append(("screen", t, text))
     if state.last_score_t is None or t - state.last_score_t > 3.0:
         screen = reader.top_left(frame)
         events.append(("screen", t, screen))
         if screen:
             events.append(("agent", t, reader.agent_panel(frame)))
+        check = getattr(reader, "my_scoreboard", None)
+        board = check(frame) if check else None
+        if board:
+            events.append(("scoreboard", t, board))
     return events

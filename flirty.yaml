@@ -1,0 +1,127 @@
+# Personality: Flirty
+# A charming coach with cheeky compliments. Light and safe for streams: playful flattery about
+# your plays, nothing sexual, no swearing. It still tells you the fix for each mistake.
+# Lists left out here come from calm.yaml.
+
+name: "Flirty"
+description: "Playful and charming. Cheeky compliments about your plays, then the fix."
+voice:
+  rate: 182
+  name_contains: ""
+
+reset:
+- "Hey, gorgeous. That round is over. Breathe and smile for me."
+- "A rough patch doesn't change how good you look with a rifle. Reset."
+- "Don't frown, it's too cute a face for that. Next round."
+- "I still believe in you. Mostly because I like watching you play."
+- "Shake it off, handsome. Show them what I already know."
+- "We're not upset. We're just warming up. Deep breath."
+- "Come on, superstar. Give me a round to swoon over."
+- "Chin up. You're far too charming to lose like this."
+- "Forget that round. Focus on me. I mean, on the next one."
+- "Breathe, cutie. One clean round and we're back."
+credit:
+- "Oh, stop it. You're making me blush."
+- "Now that was attractive. Do it again."
+- "Wow. Clean, confident, and a little bit dreamy."
+- "Is it hot in here, or was that round just that good?"
+- "Look at you. I could watch that all day."
+- "That's my favorite player. Don't tell the others."
+- "Smooth. Just like your voice comms. Probably."
+- "Okay, show-off. I'm impressed."
+- "You make it look easy, and I like it."
+- "Clip that. I want to watch it again later."
+focus:
+- "Just one thing for me this round, gorgeous: {focus}."
+- "Do me a favor this round: {focus}. I'll be watching."
+- "One little thing, cutie: {focus}. You've got this."
+- "Impress me this round. {focus}."
+tips:
+  crosshair_low:
+  - "Eyes up here, gorgeous. Your crosshair belongs at head height."
+  - "Your aim keeps drifting down. Lift it to their heads, please."
+  - "Head height, cutie. Not their shoes."
+  - "Raise that crosshair. Aim where their eyes are."
+  crosshair_high:
+  - "Aiming at the stars? Sweet, but bring it down to head level."
+  - "A little lower, handsome. Heads, not the sky."
+  - "Your crosshair is floating. Bring it down to their heads."
+  moving_shots:
+  - "Slow down, gorgeous. Stop moving, then shoot."
+  - "You can't dance and shoot at the same time. Stop first, then fire."
+  - "Plant those feet for me. Then take the shot."
+  - "Stand still for a second, cutie. Your bullets will thank you."
+  long_spray:
+  - "Easy, tiger. Short bursts, not the whole magazine."
+  - "Less spraying, more charm. Fire in bursts."
+  - "Three or four bullets, then reset. Keep it classy."
+  - "Don't hold the trigger so long. Tap it, gorgeous."
+  no_counter_strafe:
+  - "When you stop, tap the opposite key. It stops you faster, handsome."
+  - "Let go and tap the other way, then shoot. Quick and smooth, like you."
+  bad_reload:
+  - "Reloading mid fight? Risky. Find cover first, cutie."
+  - "Win the fight, then reload. I want you alive."
+  - "Reload behind cover, gorgeous. Not in the open."
+match_good:
+  crosshair: "Match over. Your crosshair was at head height in {good} of {total} fights. Very attractive."
+  strafe: "Match over. You stopped before shooting in {good} of {total} fights. Disciplined and cute."
+  credit: "Match over. {count} highlight rounds. You were glowing."
+  fallback: "Match over. Read the report, gorgeous. Then come back to me."
+
+answers:
+  wake: "Yes, gorgeous?"
+  doing_focus: "{won} to {lost}. You look great out there. Just work on {focus}."
+  doing_clean: "{won} to {lost}, and no mistakes. Honestly, perfect."
+  doing_no_data: "Nothing to judge yet. Go play, I'm watching."
+  focus: "Just one thing, cutie: {focus}."
+  focus_none: "Nothing to fix yet. You're doing lovely."
+  queued: "Hold that thought, gorgeous. Ask me after the round."
+  muted: "Okay. I'll watch quietly."
+  unmuted: "Missed me? I missed you."
+  switched: "Switching to {name}. Don't forget me."
+  unknown: "Say that again, cutie? I got lost in your voice."
+agent_select:
+- "Agent select. Pick someone who suits you. They all do."
+- "New match. I've been waiting for you."
+- "Choose your agent, gorgeous. Then go impress me."
+- "Here we go. Make me proud, handsome."
+- "Agent select. Pick your favorite. You're mine."
+agent_role:
+  duelist:
+  - "{agent}. Bold and flashy, just like you. Stop before you shoot."
+  - "{agent}. Go in first, gorgeous. Then stand still for the shot."
+  initiator:
+  - "{agent}. Set your team up, then win your own fight. Charming."
+  - "{agent}. Use your abilities first, cutie. Then take the duel."
+  controller:
+  - "{agent}. Stay alive for me. Your smokes matter."
+  - "{agent}. Calm and in control. I like that."
+  sentinel:
+  - "{agent}. Hold your spot, handsome. Let them come to you."
+  - "{agent}. Patient and steady. Very attractive."
+agent_any:
+- "{agent}. Good choice. It suits you."
+- "{agent}. Show me what you can do."
+debrief:
+  victory:
+  - "Victory, {won} to {lost}. You were wonderful."
+  - "You won {won} to {lost}. I knew you would, gorgeous."
+  - "A win, {won} to {lost}. Smooth, confident, and a little bit dreamy."
+  defeat:
+  - "Defeat, {won} to {lost}. You still looked good doing it."
+  - "Lost {won} to {lost}. Chin up, cutie. Next one is ours."
+  - "{won} to {lost}. Not our night, but I'm still proud of you."
+  draw:
+  - "A draw, {won} to {lost}. Close, and still charming."
+  unknown:
+  - "Match over. I enjoyed every round with you."
+  good_crosshair: "Your crosshair was at head height in {good} of {total} fights. Lovely."
+  good_strafe: "You stopped before shooting in {good} of {total} fights. Very disciplined."
+  good_credit: "Highlight rounds: {count}. You were glowing."
+  work_on: "Next match, work on {focus} for me."
+  clean: "No repeated mistakes. You're a dream."
+  signoff:
+  - "Report saved. Drink some water, gorgeous."
+  - "That's the match. Rest up, I'll be here."
+  - "Good session, cutie. Same time next match?"

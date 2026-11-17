@@ -69,6 +69,9 @@ tips:
   - "Long sprays won't cut it at range, mate."
   - Short bursts, mate. Don't empty the mag.
   - Tap it, mate. Burst and reset.
+  no_counter_strafe:
+  - "Tap the opposite key to stop, mate. You'll get the first shot off."
+  - "Counter-strafe, mate. A then D, then shoot."
   bad_reload:
   - "Reloaded mid fight, mate. Wait till you're safe."
   - "Hold off on that reload. Back off first."

@@ -8,8 +8,11 @@
 
 monitor: 1            # 1 is the main monitor.
 fps: 30               # Screen capture rate.
+low_fps: 20           # The capture rate when the key reader is on and the crosshair check is off (less CPU).
 hud_rate_hz: 10       # How often the program reads ammo and health.
 banner_rate_hz: 2     # How often the program reads the round result banner.
+text_reader: auto     # Reads words (BUY PHASE, WON, VICTORY, agent names). auto: the Windows text reader, then Tesseract.
+                      # windows or tesseract: use only that one.
 tesseract_cmd: ""     # Full path to tesseract.exe if it is not on PATH.
                       # Example: "C:/Program Files/Tesseract-OCR/tesseract.exe"
 
@@ -27,6 +30,9 @@ enemy_highlight:
   color: red          # red, yellow or purple. Must match Settings > General > Enemy Highlight Color.
   min_pixels: 40      # Highlight pixels (at 1080p) needed to count as an enemy.
   min_height_px: 25   # Smallest enemy outline height (at 1080p) used for the crosshair check.
+  max_height_px: 180  # Bigger outlines (enemy at arm's length, yellow clothes) are not used for the crosshair check.
+  max_center_dx_px: 300 # Only outlines this close to the crosshair, left or right (at 1080p), are used.
+  shape_filter: true  # Reject fire, lamps, tracers and map lines by colour and shape. Tuned for yellow outlines.
 
 banner_confirm_reads: 2   # A round result must show in this many banner reads in a row.
 banner_needs_hud_s: 20    # Results count only if ammo or health was read in the last 20 seconds (so menus do not count).
@@ -39,18 +45,43 @@ banner_keywords:
 
 checks:
   crosshair:
-    enabled: false             # Off: tests on real videos showed smokes and abilities make false "enemies". Turn on to try it.
+    enabled: false             # Test version. In tests on real games, the head height was right in about 7 of 10 fights. Set true to try it.
+    min_offset_px: -60         # A head further below the crosshair than this is not used (almost always a false outline).
     tolerance_px_at_1080: 18   # A head this close to the crosshair (vertically) counts as good.
     min_samples: 2             # Fights needed in a round before the check gives a tip.
   moving_shots:
     error_threshold_deg: 1.0   # With Valorant's "Shooting Error" stat on: a first shot above this spread counts as moving.
+    stat_skip_magazines: [2, 5, 7]  # Magazine sizes of shotguns and sniper rifles. Their spread is wide when you stand still, so the stat does not judge them.
     motion_threshold: 0.8      # Without the stat: movement score above this value means you were moving.
     lookback_s: 0.12           # Time before the first shot that the program checks.
     max_turn_px: 4.0           # Camera turns faster than this (flicks) are not judged.
     min_bursts: 2
     max_ratio: 0.4             # Tip when more than 40% of your bursts start while you move.
+    stat_check_after_s: 60     # After this much time with your gun out and no Shooting Error stat, the coach asks you to turn it on (once). 0: never.
+  counter_strafe:              # Needs the movement keys (the "keys" section below).
+    enabled: true
+    recent_s: 0.4              # A strafe that stopped this long before the first shot counts as a stop.
+    counter_tap_max_s: 0.16    # A tap on the opposite key this short or shorter is a counter-strafe. Range test 17 Nov: 131-136 ms taps were accurate.
+    counter_min_s: 0.06        # A shot sooner than this after the tap starts is still moving. Range test 17 Nov: 31 ms was not accurate, 66 ms was.
+    release_still_moving_s: 0.09  # A shot this soon after you let go of the key (with no counter-strafe) counts as moving. Tests 17 Nov: 66 and 83 ms moving, 97 ms accurate.
+    min_stops: 3               # Stops needed in a round before the check gives a tip.
+    max_missed_ratio: 0.6      # Tip when more than 60% of your stops do not use a counter-strafe.
   long_spray:
-    max_shots: 7               # Bursts longer than this count as a long spray. Raise it if you play SMGs.
+    max_shots: 7               # Bursts longer than this count as a long spray, for a weapon that is not in the list below.
+    per_magazine:              # Magazine size: the longest normal burst for that weapon. null: no spray tips for it.
+      2: null                  # Shorty, Outlaw
+      5: null                  # Bucky, Marshal, Operator
+      6: null                  # Sheriff
+      7: null                  # Judge
+      12: 5                    # Classic, Guardian: more is panic spam
+      13: 8                    # Frenzy
+      15: 5                    # Ghost
+      20: 10                   # Stinger
+      24: 7                    # Bulldog
+      25: 7                    # Vandal
+      30: 8                    # Phantom, Spectre
+      50: null                 # Ares: made to spray
+      100: null                # Odin: made to spray
     burst_gap_s: 0.35          # A pause longer than this ends a burst.
     min_count: 2
   reload:
@@ -58,9 +89,21 @@ checks:
     min_ammo_left_ratio: 0.3   # Only count reloads where you still had at least 30% of a magazine.
     min_count: 1
 
+keys:                          # Your movement keys and fire button, for the moving-shot and counter-strafe checks.
+  enabled: true                # The coach only notes when these keys go down and up. It never sends keys to the game.
+  forward: w
+  left: a
+  back: s
+  right: d
+  reload: r                    # A rise in ammo with no reload key (and ammo left) is a weapon change, not a reload.
+  fire: mouse_left             # mouse_left or mouse_right
+  switch: ["1", "2", "3", "4", q, e, c, x]  # Weapon and ability keys. An ammo change right after one is a weapon change, not shots.
+  switch_on_scroll: true       # The mouse wheel also changes weapon.
+
 coach:
   personality: calm            # calm, hype, tough, mate, sassy, savage, random or mix. Run "python main.py personalities" to list them.
-  random_pool: []              # Personalities that "random" and "mix" can pick. Empty means all of them.
+  random_pool: []
+  allow_18_plus: false         # true: the 18+ Degen personality can be chosen. It swears. Not safe for streams.              # Personalities that "random" and "mix" can pick. Empty means all of them.
   voice_rate: null             # Words per minute. null uses the personality's speed.
   voice_name: ""               # Part of a voice name. Empty uses the personality's voice setting.
   loss_streak_reset: 3         # Lost rounds in a row before a reset message.
@@ -77,16 +120,51 @@ voice_control:
   mic_device: null             # null uses the Windows default mic. Run "python main.py mics" to list mics.
   command_timeout_s: 5         # After "Bruce" on its own, how long the coach waits for a command.
   answer_window_s: 35          # After a round ends, coaching questions get an answer for this long (buy phase).
+  follow_up_s: 8               # After an AI answer, the next sentence in this time needs no "Bruce". 0: off.
+  stop_after_round_start_s: 5  # All speech stops this many seconds after the buy phase ends, AI lines too.
+  silent_after_round_end_s: 25 # Without a buy phase reading (no word reader), speech stops this long after the score changes.
                                # Later questions wait until the round ends.
 
 ai:
-  provider: off                # off, claude or chatgpt. Use "AI coach setup" in the Setup menu.
+  provider: off                # off, claude, chatgpt, groq (free), glm (free: match review only) or custom.
   claude_model: claude-haiku-5-5   # A fast Claude model. Change it if Anthropic renames its models.
   chatgpt_model: gpt-5.4-mini      # A fast ChatGPT model. Change it if OpenAI renames its models.
+  glm_model: z-ai/glm-5.3-flash:free  # Free on OpenRouter. Another free model ID (ending in :free) also works.
+  glm_timeout_s: 8             # Free models are slower. The coach waits this long for GLM.
+  groq_model: openai/gpt-oss-120b  # Free on Groq (console.groq.com). Any model on Groq's free plan works.
+  custom_base_url: http://localhost:11434/v1  # Custom AI: the address up to /v1. Ollama on this PC is the default.
+  custom_model: llama3.2       # Custom AI: the model name that the service uses.
+  custom_timeout_s: 8
+  conversation_memory: 3       # The AI remembers this many of your last questions and its answers (this match).
+  small_talk: true             # Between rounds you can chat about anything, not only Valorant. No tactics.
+  post_match_analysis: true    # After each match, the AI writes a review at the end of the report (one request a match).
+  analysis_delay_s: 60         # Wait this long first, so the review can use the scoreboard numbers.
+  analysis_timeout_s: 90       # The longest wait for the review.
   timeout_s: 4                 # If the AI takes longer, the coach speaks the scripted line.
   max_words: 25                # Longest AI line, in words.
   use_for: [tips, mental, answers, match_end]   # Remove items to keep scripted lines for them.
   secrets_file: secrets.yaml   # Your API keys. Keep this file private.
+
+challenge:                     # "Bruce, start the challenge" in the Range: stops scored. Best with the movement keys on.
+  shots: 20
+
+twitch:                        # Twitch chat: !vote <personality> and !coach. See "Twitch chat" in README.md.
+  enabled: false
+  channel: ""                  # Your Twitch channel name.
+  personality_votes: true      # !vote savage. At each round end, the personality with the most votes takes over.
+  stats_command: true          # !coach answers with your session numbers (needs bot_name and twitch_oauth_token).
+  bot_name: ""                 # The chat account that answers. It can be your own account. Its token goes in secrets.yaml.
+  reply_cooldown_s: 30
+
+obs_replay:                    # "Bruce, replay that": an instant replay on your stream, through OBS Studio.
+  enabled: false
+  host: localhost              # OBS runs on this PC.
+  port: 4455                   # OBS: Tools > WebSocket Server Settings. Put the password in the Control Panel (it goes in secrets.yaml).
+  scene: Instant Replay        # The OBS scene that shows the replay. Add your overlay here.
+  media_source: Replay         # The Media Source in that scene. The coach loads each saved replay into it.
+  when: now                    # now: play at once. after_round: save at once, play when the round ends.
+  max_length_s: 30             # Switch back to your scene after this long, even if the replay is longer.
+  save_wait_s: 10              # How long to wait for OBS to write the replay file.
 
 elevenlabs:
   enabled: false               # true: the coach speaks with ElevenLabs voices. Set it up on the Settings page of the Control Panel.
@@ -95,3 +173,13 @@ elevenlabs:
   model: eleven_flash_v2_5     # The fast, low-cost model.
   cache: true                  # Keep a copy of each spoken line in cache/voice, so a repeated line uses no characters.
   timeout_s: 8                 # If ElevenLabs takes longer, the Windows voice speaks the line.
+
+creator:                       # Voice commands for content creators. See "Creator commands" in README.md.
+  name: ""                     # Your name or channel name, for "Bruce, say hi". Empty: the coach says "you".
+  clip_hotkey: ""              # Optional. "Bruce, mark that" also presses this key, for example alt+f10 (NVIDIA
+                               # instant replay) or win+alt+g (Xbox Game Bar: record the last 30 seconds).
+  confirm_mark: true           # Say "Marked." after "Bruce, mark that".
+  auto_clip: true              # A won round with a highlight banner saves a clip by itself (a line in "Clips to post" and a
+                               # press of clip_hotkey). ACE and CLUTCH count only when you did not die in the round.
+  auto_clip_moments: [ACE, TEAM ACE, CLUTCH]   # Also possible: FLAWLESS, THRIFTY.
+  auto_clip_obs: save          # With OBS instant replay on: save (keep the file), replay (play it on stream) or off.

@@ -13,14 +13,34 @@ COLOR_RANGES = {
 }
 
 
+# Shape and colour tests for one outline blob. Tuned on two real games with yellow outlines
+# (Haven and Abyss): they keep about 85% of real enemies and reject about 95% of false blobs
+# (fire, lights, tracers, yellow map lines, crates, ability icons).
+# hue: the median hue of a real outline. Fire and lamps are more orange; crates are paler.
+# max_val: lamps, fire and muzzle flashes are pure white-hot (median brightness 254 or more).
+# aspect: height / width. Map lines are wide and flat. Light beams are very tall and thin.
+# min_sat: soft coloured smoke and light gradients are less saturated than an outline.
+BLOB_RULES = {
+    "yellow": {"hue": (27.5, 33.5), "max_val": 254, "aspect": (0.8, 8.0), "min_sat": 158},
+    "red": {"hue": None, "max_val": 254, "aspect": (0.8, 8.0)},
+    "purple": {"hue": None, "max_val": 254, "aspect": (0.8, 8.0)},
+}
+
+
 class EnemyDetector:
     """Finds the enemy highlight outline near the crosshair and measures head height."""
 
     def __init__(self, cfg):
         eh = cfg["enemy_highlight"]
         self.ranges = COLOR_RANGES[eh["color"]]
+        self.rules = BLOB_RULES[eh["color"]] if eh.get("shape_filter", True) else None
         self.min_pixels = eh["min_pixels"]
         self.min_height = eh["min_height_px"]
+        # Very big outlines are enemies at arm's length, or a teammate with yellow clothes:
+        # the top of the outline is then not a useful head height.
+        self.max_height = eh.get("max_height_px", 180)
+        # Only an enemy near the crosshair says something about crosshair height.
+        self.max_dx = eh.get("max_center_dx_px", 300)
         self.region = cfg["regions"]["enemy_search"]
         self.ignore = cfg["regions"].get("gun_ignore")
         self.kernel = np.ones((5, 5), np.uint8)
@@ -28,6 +48,7 @@ class EnemyDetector:
     def mask(self, frame):
         x0, y0, x1, y1 = crop_box(frame.shape, self.region)
         hsv = cv2.cvtColor(frame[y0:y1, x0:x1], cv2.COLOR_BGR2HSV)
+        self.last_hsv = hsv
         m = np.zeros(hsv.shape[:2], np.uint8)
         for lo, hi in self.ranges:
             m |= cv2.inRange(hsv, np.array(lo), np.array(hi))
@@ -42,6 +63,24 @@ class EnemyDetector:
                 return m, (x0, y0)
         self.last_ignored = 0
         return m, (x0, y0)
+
+    def _looks_like_enemy(self, mask, hsv, bw, bh):
+        r = self.rules
+        if r is None:
+            return True
+        aspect = bh / float(max(1, bw))
+        if not r["aspect"][0] <= aspect <= r["aspect"][1]:
+            return False
+        on = mask > 0
+        if not on.any():
+            return False
+        if float(np.median(hsv[..., 2][on])) >= r["max_val"]:
+            return False
+        if float(np.median(hsv[..., 1][on])) < r.get("min_sat", 0):
+            return False
+        if r["hue"] is not None and not r["hue"][0] <= float(np.median(hsv[..., 0][on])) <= r["hue"][1]:
+            return False
+        return True
 
     def detect(self, frame):
         """Return visibility and head offset in 1080p pixels.
@@ -59,20 +98,47 @@ class EnemyDetector:
 
         blobs = cv2.dilate(m, self.kernel, iterations=2)
         contours, _ = cv2.findContours(blobs, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        best = None
+        parts = []   # Outline pieces that pass the colour and shape tests
         for c in contours:
             bx, by, bw, bh = cv2.boundingRect(c)
             count = int(cv2.countNonZero(m[by:by + bh, bx:bx + bw]))
             if count * scale * scale < self.min_pixels:
                 continue
-            result["visible"] = True
-            if bh * scale < self.min_height:
+            if not self._looks_like_enemy(m[by:by + bh, bx:bx + bw], self.last_hsv[by:by + bh, bx:bx + bw], bw, bh):
                 continue
-            dist = abs((x0 + bx + bw / 2) - w / 2)
+            parts.append((bx, by, bw, bh))
+        if not parts:
+            return result
+        result["visible"] = True
+
+        # One enemy often breaks into several pieces (legs, arms, head). Join the pieces that
+        # sit above or below each other, so the top of the person is found, not the top of an arm.
+        people = []
+        for bx, by, bw, bh in sorted(parts, key=lambda p: p[1]):
+            for person in people:
+                if bx < person[2] + 12 and bx + bw > person[0] - 12 and by <= person[3] + 25:
+                    person[0], person[1] = min(person[0], bx), min(person[1], by)
+                    person[2], person[3] = max(person[2], bx + bw), max(person[3], by + bh)
+                    break
+            else:
+                people.append([bx, by, bx + bw, by + bh])
+        best = None
+        for px0, py0, px1, py1 in people:
+            ph = py1 - py0
+            if ph * scale < self.min_height or ph * scale > self.max_height:
+                continue
+            dist = abs((x0 + (px0 + px1) / 2) - w / 2)
+            if dist * scale > self.max_dx:
+                continue
             if best is None or dist < best[0]:
-                best = (dist, by, bh)
+                best = (dist, py0, ph)
         if best is None:
             return result
+
+        _, by, bh = best
+        head_y = y0 + by + 0.08 * bh  # The head center sits a little below the top of the outline.
+        result["head_offset"] = (h / 2 - head_y) * scale
+        return result
 
         _, by, bh = best
         head_y = y0 + by + 0.08 * bh  # The head center sits a little below the top of the outline.
@@ -113,21 +179,59 @@ class MotionMeter:
         self.pinv = np.linalg.pinv(self.design)
         self.n = len(xk)
 
-    def update(self, frame):
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    def _small(self, frame):
         h = int(round(self.width * frame.shape[0] / frame.shape[1]))
-        small = cv2.resize(gray, (self.width, h), interpolation=cv2.INTER_AREA)
+        # Shrink first, then make it grey: much less work than grey first on the full frame.
+        small = cv2.resize(frame, (self.width, h), interpolation=cv2.INTER_AREA)
+        return cv2.cvtColor(small, cv2.COLOR_BGR2GRAY) if small.ndim == 3 else small
+
+    # --- On demand (live coach): keep small frames, measure only around a shot. ---
+
+    def push(self, t, frame, keep_s=2.0):
+        """Keep a small grey copy of the frame. Cheap: no optical flow here."""
+        if not hasattr(self, "recent"):
+            from collections import deque
+
+            self.recent = deque()
+            self.cache = {}
+        self.recent.append((t, self._small(frame)))
+        while self.recent and t - self.recent[0][0] > keep_s:
+            old_t, _ = self.recent.popleft()
+            self.cache.pop(old_t, None)
+
+    def between(self, start, end):
+        """Motion scores for the kept frames in [start, end]. Optical flow runs only here."""
+        frames = list(getattr(self, "recent", ()))
+        out = []
+        for (t0, a), (t1, b) in zip(frames, frames[1:]):
+            if t1 < start or t1 > end:
+                continue
+            if t1 not in self.cache:
+                self.cache[t1] = self._pair(a, b)
+            if self.cache[t1] is not None:
+                out.append(self.cache[t1])
+        return out
+
+    # --- Every frame (replays, tests). ---
+
+    def update(self, frame):
+        small = self._small(frame)
         if self.prev is None or self.prev.shape != small.shape:
             self.prev = small
             self._setup(small.shape)
             return 0.0
+        prev, self.prev = self.prev, small
+        return self._pair(prev, small)
+
+    def _pair(self, prev, small):
+        """The motion score from one frame to the next. None during a flick."""
+        if not hasattr(self, "pinv") or self.n == 0 or self.window.shape != small.shape:
+            self._setup(small.shape)
         # Phase correlation finds large whole-screen shifts (flicks) that optical flow misses.
-        (dx, dy), _ = cv2.phaseCorrelate(np.float32(self.prev), np.float32(small), self.window)
+        (dx, dy), _ = cv2.phaseCorrelate(np.float32(prev), np.float32(small), self.window)
         if math.hypot(dx, dy) > self.max_turn_px:
-            self.prev = small
             return None  # Unknown: you were flicking, so the program does not judge this frame.
-        flow = cv2.calcOpticalFlowFarneback(self.prev, small, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-        self.prev = small
+        flow = cv2.calcOpticalFlowFarneback(prev, small, None, 0.5, 3, 15, 3, 5, 1.2, 0)
         obs = np.concatenate([flow[..., 0][self.index], flow[..., 1][self.index]])
         coef = self.pinv @ obs
         residual = obs - self.design @ coef

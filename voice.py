@@ -35,8 +35,13 @@ class SapiBackend:
             else:
                 print(f"[voice] No voice matches '{voice_name}'. Using the default voice.")
 
-    def speak(self, text):
-        self.sp.Speak(text)
+    def speak(self, text, cut=lambda: False):
+        # Speak in the background (flag 1) and check every 50 ms if the line must stop.
+        self.sp.Speak(text, 1)
+        while not self.sp.WaitUntilDone(50):
+            if cut():
+                self.sp.Speak("", 3)   # 1 + 2: stop the current line at once
+                return
 
     def voice_names(self):
         return [v.GetDescription() for v in self.voices()]
@@ -97,6 +102,9 @@ class Voice:
         self.personality = personality    # Chooses the ElevenLabs voice.
         self.backends = backends
         self.muted = False
+        self.allowed = lambda: True    # The session sets this: False while a round is live.
+        self.gen = 0                   # stop() raises this. Lines from an older generation are dropped.
+        self.speaking = False
         self.q = queue.Queue()
         if not silent:
             threading.Thread(target=self._run, daemon=True).start()
@@ -115,15 +123,23 @@ class Voice:
             try:
                 if item is None:
                     return
-                if isinstance(item, tuple):  # ("style", rate, name)
+                if isinstance(item, tuple) and item[0] == "style":
                     if backend is not None:
                         self._apply(backend)
                     continue
-                if self._speak_eleven(item):
+                gen, item = item
+                if gen != self.gen:
+                    continue           # stop() was called after this line was queued
+                cut = lambda: self.gen != gen  # noqa: E731
+                self.speaking = True
+                if self._speak_eleven(item, cut):
                     continue
                 while backend is not None:
                     try:
-                        backend.speak(item)
+                        try:
+                            backend.speak(item, cut)
+                        except TypeError:
+                            backend.speak(item)   # an engine that cannot stop in the middle of a line
                         break
                     except Exception as exc:
                         # Show the error and try the next speech engine.
@@ -135,16 +151,26 @@ class Voice:
                         else:
                             print("[voice] ERROR: no speech engine works. The coach cannot speak.")
             finally:
+                self.speaking = False
                 self.q.task_done()
 
-    def _speak_eleven(self, text):
+    def stop(self):
+        """Stop the current line at once and drop every queued line."""
+        self.gen += 1
+
+    def busy(self):
+        return self.speaking or not self.q.empty()
+
+    def _speak_eleven(self, text, cut=lambda: False):
         """Speak with ElevenLabs. Return False if the Windows voice must speak the line."""
         if self.eleven is None:
             return False
         from .eleven import ElevenError, play_pcm
 
         try:
-            play_pcm(self.eleven.audio(text, self.eleven.voice_for(self.personality), self.rate))
+            audio = self.eleven.audio(text, self.eleven.voice_for(self.personality), self.rate)
+            if not cut():
+                play_pcm(audio, cut=cut)
             return True
         except ElevenError as exc:
             print(f"[voice] ERROR: {exc}")
@@ -174,19 +200,22 @@ class Voice:
             self.q.put(("style", self.rate, self.voice_name))
 
     def say(self, text):
+        if not self.allowed():
+            print(f"[coach] (not spoken: the round is live) {text}")
+            return
         print(f"[coach] {text}" + (" (muted)" if self.muted else ""))
         if not self.silent and not self.muted:
-            self.q.put(text)
+            self.q.put((self.gen, text))
 
     def set_muted(self, muted):
         self.muted = muted
-        print("[coach] muted" if muted else "[coach] on")
+        print("[voice] Muted." if muted else "[voice] Unmuted.")
 
     def toggle_mute(self):
         self.muted = not self.muted
         print("[coach] muted" if self.muted else "[coach] on")
-        if not self.muted and not self.silent:
-            self.q.put("Coach on.")
+        if not self.muted and not self.silent and self.allowed():
+            self.q.put((self.gen, "Coach on."))
 
 
 def voice_names():

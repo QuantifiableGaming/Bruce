@@ -55,6 +55,7 @@ focus_names:
   moving_shots: "stopping before you shoot"
   long_spray: "short bursts"
   bad_reload: "reloading only when you are safe"
+  no_counter_strafe: "a quick tap on the opposite key before you shoot"
 
 tips:
   crosshair_low:
@@ -84,6 +85,10 @@ tips:
   - "Your sprays are too long. Control them with bursts."
   - Fire three or four shots, then reset.
   - Shorter bursts keep your shots on target.
+  no_counter_strafe:
+  - "When you stop to shoot, tap the opposite key. A then D, or D then A."
+  - "Stop faster with a counter-strafe. Tap the other key, then shoot."
+  - "You let go of the key and waited. A quick tap the other way stops you faster."
   bad_reload:
   - "You reloaded in a fight. Reload when you are safe."
   - "Careful with reloads. Fall back first."

@@ -18,13 +18,27 @@ def _merge(base, extra):
     return out
 
 
-def available(folder="personalities"):
+def available(folder="personalities", include_adult=False):
+    """(key, name, description) for each personality. 18+ personalities ("adult: true") are left out
+    unless include_adult is True, so Random, Mix and chat votes never pick them."""
     names = []
     for fn in sorted(os.listdir(folder)):
         if fn.endswith(".yaml"):
             data = load_yaml(os.path.join(folder, fn)) or {}
+            if data.get("adult") and not include_adult:
+                continue
             names.append((fn[:-5], data.get("name", fn[:-5]), data.get("description", "")))
     return names
+
+
+def is_adult(name, folder="personalities"):
+    path = os.path.join(folder, f"{name}.yaml")
+    return os.path.exists(path) and bool((load_yaml(path) or {}).get("adult"))
+
+
+def adult_allowed(cfg):
+    """The 18+ setting: coach.allow_18_plus in config.yaml (Settings > Coach in the Control Panel)."""
+    return bool((cfg.get("coach") or {}).get("allow_18_plus", False))
 
 
 def load(name, folder="personalities", path=None):
