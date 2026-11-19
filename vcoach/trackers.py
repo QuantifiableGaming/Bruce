@@ -65,6 +65,7 @@ class AmmoTracker:
                                 (self.switched is not None and self.switched(pt - self.SWITCH_WINDOW_S, pt))):
                 # No fire click: you changed weapon (for example a rifle with 10 rounds to
                 # Chamber's Headhunter with 8). Not shots.
+                self._changed(before, low, "no fire click" if self.fired is not None and not self.fired(w0, pt) else "weapon key")
                 self.mag = low
             elif ammo <= low:
                 events += self._shots(pt, before - low, prev_t)
@@ -76,8 +77,10 @@ class AmmoTracker:
             before, after = self.pending_up
             self.pending_up = None
             if ammo == after and self.switched is not None and self.switched(self.up_t - self.SWITCH_WINDOW_S, t):
+                self._changed(before, after, "weapon key")
                 self.mag = after   # A weapon or ability key just before the rise: a weapon change.
             elif ammo == after and before > 0 and self.reloaded is not None and not self.reloaded(t - 5.0, t):
+                self._changed(before, after, "no reload key")
                 self.mag = after   # No reload key and ammo was left: you changed weapon. Not a reload.
             elif ammo == after:
                 events.append(("reload_done", {"t": t, "before": before, "after": after}))
@@ -99,6 +102,7 @@ class AmmoTracker:
             if 0 < drop <= limit:
                 self.pending_down = (self.last, ammo, t, prev_t)
             elif drop > limit:
+                self._changed(self.last, ammo, "too big for shots")
                 self.mag = ammo   # Too big for shots: you changed to a smaller weapon.
             elif drop < 0:
                 self.pending_up = (self.last, ammo)
@@ -107,6 +111,13 @@ class AmmoTracker:
                 self.mag = ammo
         self.last = ammo
         return events
+
+    log_changes = True
+
+    def _changed(self, before, after, why):
+        """One log line for each weapon change, so a test match shows what the coach saw (19 Nov)."""
+        if self.log_changes:
+            print(f"[weapon] Weapon change: {before} -> {after} rounds ({why}). Not counted as shots or a reload.")
 
     def flush(self):
         self.pending_down = None
