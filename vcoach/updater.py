@@ -19,7 +19,7 @@ ZIP_URL = f"https://github.com/{REPO}/archive/refs/heads/{BRANCH}.zip"
 AGENT = {"User-Agent": "ValorantCoach/1.0"}
 
 # Your own files and folders. An update never writes these.
-KEEP = {"config.yaml", "secrets.yaml", "calibration.png", "calibration_raw.png", "reports", "logs",
+KEEP = {"config.yaml", "secrets.yaml", "player_profile.md", "calibration.png", "calibration_raw.png", "reports", "logs",
         "recordings", "screenshots", "videos", "parts", "models", "cache", "share", "backups", ".git"}
 
 

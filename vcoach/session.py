@@ -267,6 +267,9 @@ class Session:
         self.talk_mode = "coach"       # "chat" after "Hey Bruce"
         from collections import deque
         self.talk = deque(maxlen=int((cfg.get("ai", {}) or {}).get("conversation_memory", 3)) or 1)
+        from .profile import PlayerProfile
+        self.profile_on = bool((cfg.get("ai", {}) or {}).get("player_profile", True))
+        self.profile = PlayerProfile(str((cfg.get("ai", {}) or {}).get("profile_file", "player_profile.md")))
         self.ai = ai if ai is not None else self._make_ai()
         from .analysis import Analyst
 
@@ -636,8 +639,9 @@ class Session:
             done(fallback)
             return
         lines = self.coach.lines
+        profile = self.profile.facts() if self.profile_on and kind in ("chat", "answer") else None
         user = build_request(kind, self.coach, lines, stats=stats, issue=issue, question=question,
-                             extra=extra, recent=self.recent, talk=talk)
+                             extra=extra, recent=self.recent, talk=talk, profile=profile)
         words = max_words or self.ai.max_words
         self.ai.submit(system_prompt(lines, words, coach_name(self.cfg)), user, fallback, done, max_words=words)
 
@@ -913,7 +917,8 @@ class Session:
     FOLLOW_UP = "\x00follow:"            # WakeListener marks a follow-up (no wake word) with this.
     CHAT = "\x00chat:"                   # ... and "Hey Bruce" (chat mode) with this.
     # In chat mode these still work as commands. Anything else is chat.
-    CHAT_COMMANDS = {"wake", "mute", "unmute", "help", "repeat", "replay", "challenge", "mark", "personality"}
+    CHAT_COMMANDS = {"wake", "mute", "unmute", "help", "repeat", "replay", "challenge", "mark", "personality",
+                     "remember", "forget", "profile"}
     IGNORE_FOLLOW_UPS = {"ok", "okay", "yeah", "yes", "no", "thanks", "thank you", "cheers", "cool", "nice", "huh",
                          "right", "alright", "sure", "mm", "the", "a"}
 
@@ -951,6 +956,8 @@ class Session:
             self._replay(t)
         elif intent == "challenge":
             self._challenge_command(arg)
+        elif intent in ("remember", "forget", "profile"):
+            self._profile_command(intent, arg)
         elif intent == "mark":
             self._mark(t)
             if (self.cfg.get("creator") or {}).get("confirm_mark", True):
@@ -983,6 +990,25 @@ class Session:
                 self.pending.append((intent, text))
             self._say(a["queued"])
         return intent
+
+    def _profile_command(self, intent, arg):
+        """Facts about the player in player_profile.md. Not about the game, so they work at any time."""
+        if not self.profile_on:
+            self._say("The player profile is off. Turn it on in the settings.")
+        elif intent == "remember":
+            fact = self.profile.add(arg)
+            print(f"[profile] Saved: {fact}" if fact else f"[profile] Nothing to save in '{arg}'.")
+            self._say("Got it. I will remember that." if fact else "What should I remember? Say remember that, then the fact.")
+        elif intent == "forget":
+            fact = self.profile.forget_last()
+            print(f"[profile] Removed: {fact}" if fact else "[profile] The profile is empty.")
+            self._say(f"Forgotten: {fact}" if fact else "I have nothing to forget.")
+        else:
+            facts = self.profile.facts()
+            if not facts:
+                self._say("I know nothing about you yet. Say remember that, then a fact.")
+            else:
+                self._say("You told me: " + " ".join(facts[-6:]))
 
     def close(self):
         self.end_match(next_match=False)

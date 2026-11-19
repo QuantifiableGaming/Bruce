@@ -1,6 +1,7 @@
 # Private files. Never upload these.
 secrets.yaml
 config.yaml
+player_profile.md
 calibration_raw.png
 *.tmp
 

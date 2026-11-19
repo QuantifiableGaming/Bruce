@@ -54,7 +54,8 @@ HELP_PHRASES = ["help", "what can you do", "what can i say", "what can i ask", "
 # The spoken answer to "Bruce, help". One list for every personality, so new commands are always in it.
 HELP_TEXT = ("Say Hey {coach} to chat about anything. "
              "Say {coach}, then: how am I doing, what should I work on, what's the score, say that again, "
-             "mute, unmute, or switch to a personality. In the Range: start the challenge. For videos: mark that, replay that, rate that round, roast me, "
+             "mute, unmute, or switch to a personality. To keep a fact about you: remember that, then the fact. "
+             "Also: what do you know about me, and forget that. In the Range: start the challenge. For videos: mark that, replay that, rate that round, roast me, "
              "hype me up, recap, say hi, and sign off.")
 
 # Words the speech recognizer often hears instead of the real word.
@@ -97,6 +98,15 @@ def parse(text, personalities):
     if not raw:
         return ("wake", None)
     t = _fix_words(raw)
+    # The player profile: little facts the coach keeps between sessions.
+    m = re.match(r"^(?:please |can you |could you )?(?:remember|don't forget|note) (?:that )?(.+)$", raw)
+    if m:
+        return ("remember", m.group(1))
+    if _has(t, ["forget that", "forget it", "forget the last thing", "forget what i said", "delete that fact"]):
+        return ("forget", None)
+    if _has(t, ["what do you know about me", "what do you remember", "what have you remembered",
+                "what do you know of me", "tell me about me"]):
+        return ("profile", None)
     if _has(t, ["unmute", "talk again", "you can talk", "come back", "start talking", "speak again"]):
         return ("unmute", None)
     if _has(t, ["mute", "quiet", "shut up", "stop talking", "be quiet", "silence", "pipe down"]):

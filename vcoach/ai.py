@@ -226,7 +226,7 @@ Lines in your style (for the style only: they are not facts about this player):
 
 
 def build_request(kind, coach, lines, stats=None, issue=None, question=None, extra=None, recent=None,
-                  talk=None):
+                  talk=None, profile=None):
     """Return the user prompt with the facts for one message."""
     facts = [f"Score: won {coach.won}, lost {coach.lost}. Round number: {coach.round_no}."]
     if coach.loss_streak:
@@ -254,6 +254,10 @@ def build_request(kind, coach, lines, stats=None, issue=None, question=None, ext
         facts.append(extra)
     if recent:
         facts.append("Your recent lines. Do not repeat their words or their advice: " + " | ".join(recent[-4:]))
+    if profile:
+        # Facts that the player asked the coach to remember (player_profile.md).
+        facts.append("Facts the player asked you to remember, in their words. Use one only when it fits the "
+                     "question, and never make up more: " + " | ".join(profile[-20:]))
     if talk:
         # The last few questions and answers, so a follow-up such as "what about my last round?" makes sense.
         facts.append("Your talk with the player so far (older first): " +

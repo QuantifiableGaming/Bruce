@@ -139,6 +139,7 @@ ai:
   custom_model: llama3.2       # Custom AI: the model name that the service uses.
   custom_timeout_s: 8
   conversation_memory: 3       # The AI remembers this many of your last questions and its answers (this match).
+  player_profile: true         # Keep facts you ask the coach to remember ("remember that ...") in player_profile.md.
   small_talk: true             # Between rounds you can chat about anything, not only Valorant. No tactics.
   post_match_analysis: true    # After each match, the AI writes a review at the end of the report (one request a match).
   analysis_delay_s: 60         # Wait this long first, so the review can use the scoreboard numbers.
