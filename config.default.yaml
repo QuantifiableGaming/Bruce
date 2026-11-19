@@ -6,6 +6,7 @@
 # The default values are estimates for a 16:9 screen with the default HUD scale.
 # Run "python main.py calibrate" and change these values until each box covers its HUD item.
 
+update_check: true    # Look for a newer version on GitHub when the coach and the Control Panel start.
 monitor: 1            # 1 is the main monitor.
 fps: 30               # Screen capture rate.
 low_fps: 20           # The capture rate when the key reader is on and the crosshair check is off (less CPU).
@@ -47,6 +48,7 @@ checks:
   crosshair:
     enabled: false             # Test version. In tests on real games, the head height was right in about 7 of 10 fights. Set true to try it.
     min_offset_px: -60         # A head further below the crosshair than this is not used (almost always a false outline).
+    min_aspect: 1.15           # Only tall outlines (height / width) count. Teammate markers and dead bodies are wider.
     tolerance_px_at_1080: 18   # A head this close to the crosshair (vertically) counts as good.
     min_samples: 2             # Fights needed in a round before the check gives a tip.
   moving_shots:
@@ -103,6 +105,7 @@ keys:                          # Your movement keys and fire button, for the mov
 coach:
   personality: calm            # calm, hype, tough, mate, sassy, savage, random or mix. Run "python main.py personalities" to list them.
   random_pool: []
+  summary_reminder: true       # After a match, remind you to open SUMMARY. Stops by itself after 3 scoreboards.
   allow_18_plus: false         # true: the 18+ Degen personality can be chosen. It swears. Not safe for streams.              # Personalities that "random" and "mix" can pick. Empty means all of them.
   voice_rate: null             # Words per minute. null uses the personality's speed.
   voice_name: ""               # Part of a voice name. Empty uses the personality's voice setting.

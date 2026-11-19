@@ -166,6 +166,11 @@
         </div>
         <button class="btn primary" id="heroBtn" style="display:none"></button>
       </div>
+      <div class="card" id="updateCard" style="display:none; justify-content:space-between; align-items:center; gap:12px">
+        <div><b>A new version is ready.</b> <span id="updateText"></span>
+          <div class="note">The update does not change your settings, keys, reports or recordings. It keeps a copy of each old file in the backups folder.</div></div>
+        <button class="btn primary" id="updateBtn">Update now</button>
+      </div>
       <div class="card">
         <h2>Setup checklist</h2>
         <div id="checklist"></div>
@@ -350,9 +355,16 @@
       <div class="card md" id="progressCard">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:12px">
           <h2 style="margin:0">Progress</h2>
-          <button class="btn small" id="seasonBtn">Start a new season</button>
+          <div style="display:flex; gap:8px; align-items:center">
+            <select id="modeFilter" style="width:auto" title="Show the matches of one game type">
+              <option value="">All matches</option>
+              <option value="ranked">Ranked (Competitive)</option>
+              <option value="casual">Casual (Unrated and Swiftplay)</option>
+            </select>
+            <button class="btn small" id="seasonBtn">Start a new season</button>
+          </div>
         </div>
-        <p class="note">Your last matches, newest first. In the four coach columns, lower is better. An empty cell means too little data. Combat score and K/D/A come from the scoreboard: open the SUMMARY tab after a match while the coach runs. The debrief compares only matches in the current season.</p>
+        <p class="note">Your last matches, newest first. In the four coach columns, lower is better. An empty cell means too little data. Combat score and K/D/A come from the scoreboard: open the SUMMARY tab after a match while the coach runs. The list above the reports filters both lists by game type. Matches from before 19 Nov have no game type, so they show only under "All matches". The debrief compares only matches in the current season.</p>
         <div id="progress" style="overflow-x:auto"></div>
       </div>
       <div class="rep">
@@ -469,7 +481,18 @@ async function refresh() {
   showRecord();
   renderChecklist(s);
   fillQuickPers(s);
+  renderUpdate(s);
 }
+function renderUpdate(s) {
+  const u = s && s.update;
+  $("updateCard").style.display = u && u.newer ? "flex" : "none";
+  if (u && u.newer) $("updateText").textContent = `Version ${u.remote} is on GitHub. You have version ${u.local}.`;
+}
+$("updateBtn").onclick = async () => {
+  if (ST?.coach_running) { toast("Stop the coach first."); return; }
+  const out = await runTask("update", { title: "Updating the coach…", note: "This downloads the newest version from GitHub." });
+  if (out && out.code === 0) { $("updateCard").style.display = "none"; toast("Updated. Close and start the Control Panel again."); }
+};
 const cap = (w) => (w || "").charAt(0).toUpperCase() + (w || "").slice(1);
 
 function row(state, title, text, btn) {
@@ -800,13 +823,19 @@ function md(text) {
   }
   return html;
 }
+function modeFilter() { try { return localStorage.getItem("modeFilter") || ""; } catch (e) { return ""; } }
+$("modeFilter").value = modeFilter();
+$("modeFilter").onchange = () => { try { localStorage.setItem("modeFilter", $("modeFilter").value); } catch (e) {} loadReports(); };
 async function loadProgress() {
   const h = await api("/api/history"); if (!h) return;
+  const want = $("modeFilter").value;
+  if (want) h.rows = h.rows.filter((r) => r.season !== undefined || r.kind === want);
+  if (!h.rows.some((r) => r.season === undefined)) { $("progress").innerHTML = `<p class="note">${want ? "No matches of this type yet." : "No matches yet. The list starts with your next match."}</p>`; return; }
   if (!h.rows.length) { $("progress").innerHTML = '<p class="note">No matches yet. The list starts with your next match.</p>'; return; }
   const cell = (v, unit) => (v === null || v === undefined ? "" : v + unit);
   const rows = h.rows.map((r) => r.season !== undefined
     ? `<tr><td colspan="10" style="background:var(--panel2)"><b>${esc(r.season)}</b> started ${esc(r.date)}</td></tr>`
-    : `<tr><td>${esc(r.date)}</td><td>${esc(r.result)} ${esc(r.score)}</td><td>${r.rounds}</td><td>${cell(r.combat, "")}</td><td>${cell(r.kda, "")}</td>
+    : `<tr><td>${esc(r.date)}</td><td>${esc(r.result)} ${esc(r.score)}${r.mode ? `<br><span class="note">${esc(r.mode)}</span>` : ""}</td><td>${r.rounds}</td><td>${cell(r.combat, "")}</td><td>${cell(r.kda, "")}</td>
     <td>${cell(r.deaths, "")}</td><td>${cell(r.moving, "%")}</td><td>${cell(r.no_counter, "%")}</td><td>${cell(r.long_sprays, "%")}</td><td>${cell(r.bad_reloads, "")}</td></tr>`).join("");
   $("progress").innerHTML = `<table><thead><tr><th>Date</th><th>Result</th><th>Rounds</th><th>Combat score</th><th>K/D/A</th><th>Deaths per round</th>
     <th>First shots while moving</th><th>Stops without a counter-strafe</th><th>Long sprays</th><th>Bad reloads per round</th></tr></thead><tbody>${rows}</tbody></table>`;
@@ -818,8 +847,10 @@ $("seasonBtn").onclick = async () => {
 };
 async function loadReports() {
   loadProgress();
-  const list = await api("/api/reports"); if (!list) return;
-  if (!list.length) { $("rlist").innerHTML = '<p class="note">No reports yet. Play a match with the coach running.</p>'; return; }
+  let list = await api("/api/reports"); if (!list) return;
+  const want = $("modeFilter").value;
+  if (want) list = list.filter((r) => r.kind === want);
+  if (!list.length) { $("rlist").innerHTML = `<p class="note">${want ? "No reports of this type yet." : "No reports yet. Play a match with the coach running."}</p>`; $("rview").innerHTML = '<p class="note">Choose a report.</p>'; return; }
   $("rlist").innerHTML = list.map((r, i) => `<button data-rep="${esc(r.name)}" class="${i === 0 ? "sel" : ""}">${new Date(r.time * 1000).toLocaleString()}</button>`).join("");
   showReport(list[0].name);
 }
@@ -852,7 +883,7 @@ $("closeBtn").onclick = async () => {
   const page = location.hash.slice(1);
   go(["home", "regions", "personality", "voice", "ai", "settings", "reports", "help"].includes(page) ? page : "home");
   if (ST && ST.coach_running) pollCoach();
-  statusTimer = setInterval(() => { if (!polling && !CLOSED) api("/api/status").then((s) => { if (s) { ST = s; renderCoachState(s.coach_running); if (s.coach_running) pollCoach(); } }); }, 5000);
+  statusTimer = setInterval(() => { if (!polling && !CLOSED) api("/api/status").then((s) => { if (s) { ST = s; renderCoachState(s.coach_running); renderUpdate(s); if (s.coach_running) pollCoach(); } }); }, 5000);
 })();
 </script>
 </body>

@@ -1,0 +1,226 @@
+# Personality: Savage
+# A funny-mean roast coach with short, quotable lines for clips.
+# The roasts are about plays and habits only, never about the player as a person.
+# No swearing and no slurs, so the clips are safe to post.
+# Lists left out here come from calm.yaml.
+
+name: "Savage"
+description: "Funny and mean. Short roasts made for clips. Still tells you the fix."
+voice:
+  rate: 195
+  name_contains: ""
+
+reset:
+- "Three rounds lost. At this point the enemy team should pay you rent."
+- "I've seen training bots with a better win streak. Reset."
+- "That round was a crime scene, and you were the victim. Again. Breathe."
+- "You're not on a losing streak. You're on a charity run. Stop donating."
+- "Somewhere, a coach is proud of their player. Could be me, next round. Reset."
+- "The comeback starts now. Mostly because it can't get worse."
+- "Deep breath. Even your mouse is embarrassed. New round."
+- "They are not better than you. They are just not you. Fix that."
+- "If losing was a skill, you'd be Radiant. Now go win one."
+- "Clear your head. There's clearly room in there."
+- "That lead you had? Gone. Like your crosshair placement. Reset."
+- "Okay. New round. Pretend the last three were a warm-up."
+
+- You've lost so many rounds the scoreboard filed a complaint. Reset.
+- Shake it off. You're good at shaking. I've seen your aim.
+- The enemy isn't good. You're just generous. Stop it.
+- New round. Try playing it with your eyes open.
+- That streak is longer than my patience. End it.
+- You're one round from a comeback and ten from a good one. Start anyway.
+- Breathe. Your crosshair is breathing more than you are.
+- Forget the score. I'm trying to. New round.
+- They're farming you like a crop. Stop growing there.
+- You've been a great teammate. To the enemy. Change sides.
+- Okay, that was the tutorial. The real match starts now.
+- Relax your hands. They've done enough damage. To us.
+credit:
+- "Wait. That was good. Who's playing right now?"
+- "A clean round. Screenshot it. It's rare."
+- "Finally. I was about to ask for a refund."
+- "Look at that. The monitor is on after all."
+- "Good round. I take back one of the things I said. One."
+- "You popped off. I'm scared. Do it again."
+- "That was so clean I checked if it was a replay."
+- "Okay, main character. One good round. Now make it two."
+- "See? You can aim. You just choose violence against your own stats."
+- "I'd clap, but I don't want you to get used to it."
+- "That round goes in the clip folder. The others go in the bin."
+- "Who gave you permission to be good? Keep it."
+
+- Hold on. Run that back. You did that?
+- A good round. Mark the date. Call your family.
+- That was clean. I had a roast ready and everything.
+- Look who found the left mouse button.
+- You carried. I need to sit down.
+- Nice round. I'm deleting three insults from the list.
+- That was almost professional. Almost. Keep going.
+- The enemy just checked your profile. Good.
+- I blinked and you were good. Do it while I'm watching.
+- Round won. And you helped. Wild.
+- That play had a brain behind it. Whose was it?
+- Okay, that one was for the highlight reel. A short reel.
+focus:
+- "One thing this round: {focus}. Just one. You can count to one."
+- "New plan: {focus}. The old plan was not a plan."
+- "This round, try {focus}. I know it's new for you."
+
+- 'Tiny goal this round: {focus}. Baby steps for a baby aim.'
+- Forget everything else. {focus}. That's the whole homework.
+- "This round: {focus}. If that works, we'll try a second thing next year."
+tips:
+  crosshair_low:
+  - "You're aiming at their shoes. They're not selling them."
+  - "Crosshair on the floor again. The floor has no health bar."
+  - "Heads are at the top of the body. I checked. Aim there."
+  - "You've hit more ankles than a football tackle. Aim up."
+  - "Unless the enemy is a carpet, raise your crosshair."
+  - Your crosshair is looking for loose change. Look up.
+  - The floor is undefeated against you. Aim at heads.
+  - You keep aiming where they walked. Aim where they think.
+  - Crosshair up. You're a rifleman, not a foot doctor.
+  - Every enemy has a head. It's the bit on top. Aim there.
+  crosshair_high:
+  - "You're aiming at the sky. The enemy is not a bird."
+  - "Lower your crosshair. You're shooting at their thoughts."
+  - "Nice aim, if they were on stilts. Head level."
+  - "The ceiling did nothing to you. Aim at a head."
+  - You're aiming over their heads. So are my instructions, clearly.
+  - Lower. They're players, not skyscrapers.
+  - Your crosshair is in the clouds. Bring it down to the fight.
+  - Great aim for a giraffe hunt. Head level, please.
+  moving_shots:
+  - "Running and shooting. That works in every game except this one."
+  - "Your bullets went everywhere. Like your plan. Stop, then shoot."
+  - "You shot while moving and hit a wall, a box, and my patience."
+  - "Stand still for one shot. You're not being chased by a bee."
+  - "Stop. Then shoot. It's two steps. You keep doing one."
+  - You run and shoot like the floor is lava. It isn't. Stop.
+  - Your bullets need a map to find the enemy. Stand still.
+  - Stop moving when you shoot. You're not a drive-by.
+  - Feet first, then finger. You keep doing both at once.
+  - That spray pattern was modern art. Stop, then shoot.
+  long_spray:
+  - "Thirty bullets, zero kills. The wall behind them is dead, though."
+  - "You sprayed the whole magazine. The enemy thanks you for the light show."
+  - "That's a rifle, not a fire hose. Burst."
+  - "Holding the trigger is not a strategy. It's a prayer. Short bursts."
+  - "You painted the wall. Lovely. Now try hitting a person."
+  - You held the trigger like it owed you money. Burst.
+  - Bullet one hit. Bullets two to thirty went on holiday.
+  - Your recoil went to the moon. Tap, don't hold.
+  - That wasn't a spray. That was a cry for help. Short bursts.
+  - The first three shots are aim. The rest are hope. Stop at three.
+  no_counter_strafe:
+  - "You stop like a shopping trolley. Tap the opposite key."
+  - "The enemy shot while you were still sliding to a stop. Counter-strafe."
+  - "Letting go of the key is not a stop. Tap the other one."
+  bad_reload:
+  - "You reloaded in the middle of a fight. Bold. Wrong, but bold."
+  - "Reloading in the open. The enemy said thank you."
+  - "You had bullets left and reloaded anyway. And then you had no health left."
+  - "That reload had the timing of a bad joke. Take cover first."
+
+  - You reloaded with an enemy right there. They watched. They waited. They won.
+  - Nice reload. Shame about the timing, the place, and the result.
+  - Cover first, reload second. You did neither, then died.
+  - That reload cost you the round. Expensive habit.
+match_good:
+  crosshair: "Match over. Your crosshair was at head height in {good} of {total} fights. I'm as shocked as the enemy."
+  strafe: "Match over. You stopped before shooting in {good} of {total} fights. Growth. Tiny, but growth."
+  credit: "Match over. Highlight rounds: {count}. The rest, we don't talk about."
+  fallback: "Match over. Read the report. Bring tissues."
+
+answers:
+  wake: "What."
+  help: "Say {coach}, then ask: how am I doing, what should I work on, what is the score, repeat, mute, unmute, or a personality name. Try to keep up."
+  score: "You have won {won} and lost {lost}. I didn't make the numbers. You did."
+  doing_no_data: "You've done nothing yet. For once, that's not an insult."
+  doing_focus: "{won} to {lost}. The big problem? {focus}. The small problems, we don't have time for."
+  doing_clean: "{won} to {lost}, and no bad habits yet. I'm suspicious."
+  focus: "Where do I start. Fine: {focus}."
+  focus_none: "Nothing to roast yet. I'm bored. Do something."
+  queued: "I'm busy watching you struggle. Ask me after the round."
+  muted: "Fine. Suffer in silence."
+  unmuted: "I'm back. You missed me. Your stats did."
+  switched: "Switching to {name}. Coward."
+  repeat_none: "I haven't said anything yet. Enjoy it."
+  unknown: "I didn't catch that. Talk like you aim: slower."
+
+agent_select:
+- "Agent select. Pick whoever you want. It's not the agent's fault."
+- "New match. New chance to disappoint me. Let's go."
+- "Choose your agent. They deserve an apology in advance."
+- "Another match. The enemy team is already saying thank you."
+- "Lock in. Then lock in mentally. One of those is new for you."
+- "Pick an agent you can play. So, a short list."
+
+- Agent select. Choose fast. The enemy needs their free rounds.
+- Pick someone with a big ultimate. You'll have plenty of time to save for it.
+- New match. I've prepared my roasts. Have you prepared anything?
+- Lock in your main. Or don't. The result is the same.
+- Choose your agent. I'll choose my words. One of us will be careful.
+- Another queue. You're brave. I'll give you that.
+agent_role:
+  duelist:
+  - "{agent}. A duelist. So you go in first and die first. Efficient."
+  - "{agent}? Brave. Your team expects kills. Lower their expectations."
+  - "{agent}. Entry fragger. Please enter. And please frag. In that order."
+  - '{agent}. A duelist. Remember: first in, first out. Mostly out.'
+  - '{agent}. You wanted the kills. Now go and actually get them.'
+  - "{agent}? The team's entry. Knock first. Then stop and shoot."
+  initiator:
+  - "{agent}. An initiator. You start things. Try finishing one."
+  - "{agent}. Your job is to set up the team. Not to set them back."
+  - '{agent}. You gather information. Start with where the heads are.'
+  - '{agent}. You open the round. Try not to close it too.'
+  controller:
+  - "{agent}. A controller. You control the map. Start with your crosshair."
+  - "{agent}. Your one job is to stay alive. I've seen your work. Good luck."
+  - '{agent}. Smokes down, crosshair up. You usually do the opposite.'
+  - '{agent}. The team needs you alive. A new experience for you.'
+  sentinel:
+  - "{agent}. A sentinel. You hold the site. Hold your nerve too."
+  - "{agent}. You sit still and wait. Finally, a role that fits your movement."
+
+  - '{agent}. You watch the flank. Someone should watch your aim.'
+  - "{agent}. Patience wins on this role. So that's a problem."
+agent_any:
+- "{agent}. Sure. It won't be the agent that loses this."
+- "{agent}. Interesting. Wrong, but interesting."
+
+- "{agent}. Bold choice. I'll allow it. I won't support it."
+- '{agent}. Good agent. Shame about the pilot.'
+debrief:
+  victory:
+  - "Victory, {won} to {lost}. I'm writing this down. Nobody will believe me."
+  - "You won {won} to {lost}. Even a broken clock wins a Swiftplay."
+  - "A win, {won} to {lost}. Your team says you're welcome."
+  - Victory, {won} to {lost}. Proof that anything is possible.
+  - You won {won} to {lost}. I'd like to thank your teammates.
+  - "{won} to {lost}, a win. Don't post it. Nobody will believe you."
+  defeat:
+  - "Defeat, {won} to {lost}. The enemy team is sending a thank-you card."
+  - "Lost {won} to {lost}. On the bright side, it's over."
+  - "{won} to {lost}. A loss. I'd say unlucky, but I watched it."
+  - Defeat, {won} to {lost}. You fought hard. Against your own crosshair.
+  - Lost {won} to {lost}. The enemy barely had to warm up.
+  - "{won} to {lost}. That's a loss, and I have notes. So many notes."
+  draw:
+  - "A draw, {won} to {lost}. Too stubborn to lose, too scared to win."
+  unknown:
+  - "Match over. I looked away. Self-care."
+  good_crosshair: "Crosshair at head height in {good} of {total} fights. Shocking. In a good way, for once."
+  good_strafe: "You stopped before shooting in {good} of {total} fights. Someone has been listening."
+  good_credit: "Highlight rounds: {count}. I counted twice."
+  work_on: "Next match, work on {focus}. That's the polite version."
+  clean: "No repeated mistakes. I have nothing to roast. I hate it here."
+  signoff:
+  - "Report saved. Read it sitting down."
+  - "That's the match. Go touch some grass, then queue again."
+  - "Good session. And by good, I mean finished."
+  - That's the match. Stretch your hands. They've been through a lot.
+  - Report saved. It reads like a horror story. Enjoy.
+  - We're done. Queue again when your pride grows back.

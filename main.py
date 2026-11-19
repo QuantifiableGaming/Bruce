@@ -44,7 +44,7 @@ from vcoach.capture import ScreenSource, VideoSource
 from vcoach.eleven import from_config as eleven_from_config
 from vcoach.personality import PersonalityPicker, available
 from vcoach.session import Session
-from vcoach.util import crop_box, load_yaml
+from vcoach.util import coach_name, crop_box, load_yaml
 from vcoach.vision import EnemyDetector
 from vcoach.voice import Voice, list_voices, start_hotkey
 
@@ -168,10 +168,25 @@ class Tee:
         self.stream.flush()
 
 
+def start_update_check():
+    """Look for a newer version on GitHub in the background. It only prints one line."""
+    from vcoach import updater
+
+    def run():
+        info = updater.check(os.path.dirname(os.path.abspath(__file__)))
+        if info["newer"]:
+            print(f"[update] Version {info['remote']} is on GitHub. You have {info['local']}. "
+                  "Open the Control Panel and press Update now on the Home page.")
+
+    threading.Thread(target=run, daemon=True).start()
+
+
 def run_live(cfg, args):
     sys.stdout = Tee(sys.stdout, os.path.join("logs", "coach_log.txt"))
     sys.stderr = sys.stdout   # Errors go to the same log.
     print(f"Coach started {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    if cfg.get("update_check", True):
+        start_update_check()
     from vcoach.hud import HudReader, HudWorker
 
     voice = Voice(silent=args.silent, eleven=None if args.silent else eleven_from_config(cfg))
@@ -188,7 +203,7 @@ def run_live(cfg, args):
         for p in problems:
             print("[replay] " + p)
         if not problems:
-            print('[replay] OBS is ready. Say "Bruce, replay that" for an instant replay on stream.')
+            print(f'[replay] OBS is ready. Say "{coach_name(cfg)}, replay that" for an instant replay on stream.')
     from vcoach.twitch_chat import from_config as chat_from_config
 
     chat = chat_from_config(cfg)
@@ -224,6 +239,8 @@ def run_live(cfg, args):
                     print("Stop requested by the control panel.")
                     break
             t, frame = source.read()
+            if frame is None:
+                continue                  # The screen cannot be captured for a moment (see capture.py).
             if shot.is_set():
                 shot.clear()
                 save_screenshot(frame, voice)
@@ -241,7 +258,7 @@ def run_live(cfg, args):
             if session.follow_up_due and listener and not voice.busy():
                 session.follow_up_due = False
                 listener.open_follow_up(session.follow_up_s)
-                print(f"[voice] Listening {session.follow_up_s:g} s for a follow-up question (no \"Bruce\" needed).")
+                print(f"[voice] Listening {session.follow_up_s:g} s for a follow-up question (no \"{coach_name(cfg)}\" needed).")
             if chat:
                 for user, text in drain(chat.messages):
                     session.chat_message(t, user, text)
@@ -510,7 +527,9 @@ def run_calibrate(cfg, args):
     else:
         print(f"Taking a screenshot in {args.delay} seconds. Switch to Valorant now.")
         time.sleep(args.delay)
-        _, frame = ScreenSource(cfg["monitor"]).read()
+        _, frame = ScreenSource(cfg["monitor"]).read_frame()
+        if frame is None:
+            raise SystemExit("Windows cannot capture the screen. Unlock the PC and try again.")
 
     cv2.imwrite("calibration_raw.png", frame)
     out = frame.copy()
@@ -555,6 +574,8 @@ def main():
     sub.add_parser("install-tesseract")
     sub.add_parser("text-test")
     sub.add_parser("self-test")
+    sub.add_parser("update", help="Get the newest version from GitHub.")
+    sub.add_parser("check-update", help="Show if a newer version is on GitHub.")
     an = sub.add_parser("analyze")
     an.add_argument("report", nargs="?", help="A report in the reports folder. Default: the newest one.")
     sub.add_parser("install-voice-model")
@@ -608,6 +629,18 @@ def main():
         raise SystemExit(0 if download_model(path) else 1)
     if args.mode == "self-test":
         raise SystemExit(run_self_test())
+    if args.mode in ("update", "check-update"):
+        from vcoach import updater
+
+        root = os.path.dirname(os.path.abspath(__file__))
+        if args.mode == "update":
+            raise SystemExit(updater.update(root))
+        info = updater.check(root)
+        if info["remote"] is None:
+            raise SystemExit("Could not reach GitHub.")
+        print(f"Your version: {info['local']}. Version on GitHub: {info['remote']}."
+              + (" A newer version is ready. Run the update from the Control Panel." if info["newer"] else " You are up to date."))
+        return
     if args.mode == "analyze":
         from vcoach.ai import AIClient, load_secrets
         from vcoach.analysis import analyze_report
