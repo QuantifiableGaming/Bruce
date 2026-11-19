@@ -918,7 +918,7 @@ class Session:
     CHAT = "\x00chat:"                   # ... and "Hey Bruce" (chat mode) with this.
     # In chat mode these still work as commands. Anything else is chat.
     CHAT_COMMANDS = {"wake", "mute", "unmute", "help", "repeat", "replay", "challenge", "mark", "personality",
-                     "remember", "forget", "profile"}
+                     "remember", "forget", "profile", "roast", "hype_me", "rate", "recap", "intro", "outro"}
     IGNORE_FOLLOW_UPS = {"ok", "okay", "yeah", "yes", "no", "thanks", "thank you", "cheers", "cool", "nice", "huh",
                          "right", "alright", "sure", "mm", "the", "a"}
 

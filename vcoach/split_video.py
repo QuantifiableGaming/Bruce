@@ -8,7 +8,7 @@ import re
 import subprocess
 import sys
 
-PART_MB = 250   # Parts over about 300 MB time out when they are copied to Claude (17 Nov).
+PART_MB = 200   # Parts of about 270 MB timed out when they were copied to Claude (19 Nov).
 
 
 def _ffmpeg():
@@ -46,17 +46,22 @@ def split(path, out_root=None):
     # because a coach folder on the Desktop is often in OneDrive, which uploads every file.
     out_dir = os.path.join(out_root or os.path.join(os.path.dirname(os.path.abspath(path)), "parts"), name)
     os.makedirs(out_dir, exist_ok=True)
+    old = [f for f in os.listdir(out_dir) if re.match(r"part_\d{3}\.mp4$", f)]
+    for f in old:
+        os.remove(os.path.join(out_dir, f))   # Old parts of this video, from an earlier split.
+    if old:
+        print(f"Removed {len(old)} old parts of this video.")
     print(f"Video: {size_mb / 1000:.1f} GB, {seconds / 60:.1f} minutes, codec {codec}.")
     print(f"Cutting it into parts of about {part_s // 60} min {part_s % 60} s in {out_dir} ...")
-    cmd = [ffmpeg, "-hide_banner", "-loglevel", "error", "-i", path, "-map", "0:v:0", "-c", "copy", "-an",
+    cmd = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-i", path, "-map", "0:v:0", "-c", "copy", "-an",
            "-f", "segment", "-segment_time", str(part_s), "-reset_timestamps", "1",
            os.path.join(out_dir, "part_%03d.mp4")]
     subprocess.check_call(cmd)
     parts = sorted(f for f in os.listdir(out_dir) if f.startswith("part_"))
-    big = [f for f in parts if os.path.getsize(os.path.join(out_dir, f)) > 400e6]
+    big = [f for f in parts if os.path.getsize(os.path.join(out_dir, f)) > 300e6]
     print(f"Done: {len(parts)} parts.")
     if big:
-        print(f"Warning: {len(big)} parts are larger than 400 MB: {', '.join(big)}")
+        print(f"Warning: {len(big)} parts are larger than 300 MB: {', '.join(big)}")
     print("Tell Claude that the parts are ready.")
 
 

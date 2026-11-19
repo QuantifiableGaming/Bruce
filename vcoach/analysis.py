@@ -76,6 +76,12 @@ def history_lines(path, before_date=None, last=8, mode=None):
     return [json.dumps({k: e[k] for k in keep if e.get(k) not in (None, "")}) for e in entries[-last:]]
 
 
+def report_mode(text):
+    """The mode word from the "Mode:" line of a report ("Mode: Competitive (ranked)" -> "competitive")."""
+    m = re.search(r"^Mode: (\w+)", text, re.M)
+    return m.group(1).lower() if m else None
+
+
 def match_entry(path, date):
     """(the history line of the match that started at date, the earlier lines of this season)."""
     if not date or not os.path.exists(path):
@@ -244,8 +250,13 @@ def analyze_report(path, client, history_path=None, timeout=90):
         date = f"{m[1]}-{m[2]}-{m[3]} {m[4]}:{m[5]}"
     hpath = history_path or os.path.join(os.path.dirname(path), "history.jsonl")
     current, before = match_entry(hpath, date)
-    mode = (current or {}).get("mode")
-    hist = history_lines(hpath, date, mode=mode)
+    mode = (current or {}).get("mode") or report_mode(text)
+    if re.search(r"^Result: STOPPED", text, re.M) or history.mode_kind(mode) == "other":
+        # 19 Nov: a stopped custom game was compared with ranked matches. A part of a match, or a
+        # custom game, Deathmatch or other mode, gets no comparison.
+        current, before, hist = None, [], []
+    else:
+        hist = history_lines(hpath, date, mode=mode)
     prompt = build_prompt(text, hist, trend_lines(current, before), current, history.mode_kind(mode))
     review = clean(client.complete(SYSTEM, prompt, timeout=timeout, max_tokens=900))
     if len(review.split()) < 20:

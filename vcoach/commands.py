@@ -101,7 +101,9 @@ def parse(text, personalities):
     # The player profile: little facts the coach keeps between sessions.
     m = re.match(r"^(?:please |can you |could you )?(?:remember|don't forget|note) (?:that )?(.+)$", raw)
     if m:
-        return ("remember", m.group(1))
+        # 19 Nov: "remember the have friday remember my favorite food..." (the wake word heard twice).
+        fact = re.split(r"\b(?:remember|don't forget)\b(?: that)?", m.group(1))[-1].strip()
+        return ("remember", fact or m.group(1))
     if _has(t, ["forget that", "forget it", "forget the last thing", "forget what i said", "delete that fact"]):
         return ("forget", None)
     if _has(t, ["what do you know about me", "what do you remember", "what have you remembered",
