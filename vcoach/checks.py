@@ -158,6 +158,9 @@ class Analyzer:
             if (not self.sampled and enemy["head_offset"] is not None
                     and t - self.enemy_appear_t <= 0.3 and self._gun_out(t)
                     and enemy["head_offset"] >= cc.get("min_offset_px", -60)
+                    # A head far above the crosshair is the top HUD (spike icon, BUY PHASE banner) or
+                    # the map, with a large search area (19 Nov Lotus: +353 to +420 px).
+                    and enemy["head_offset"] <= cc.get("max_offset_px", 200)
                     # A standing enemy is tall. A wide or square outline is a teammate's marker icon
                     # or a dead body (19 Nov video: these gave +46 to +126 px "too low" readings).
                     and (enemy.get("aspect") or 9.0) >= cc.get("min_aspect", 1.15)

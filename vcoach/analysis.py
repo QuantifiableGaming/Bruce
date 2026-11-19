@@ -31,6 +31,10 @@ Rules:
 - For totals, use the "Counted from the round table" lines. When you name a round, copy its numbers from its own row.
 - A "Result: STOPPED" match was stopped before it ended: do not call it a win or a loss.
 - The program cannot see positions, utility use or team play. Do not give advice about those.
+- "Moving" counts bad shots: fewer bursts while moving is better. A low share of moving bursts is a good habit, never
+  a problem to fix.
+- The program cannot see kills. Do not praise kills or combat. Round wins in a custom game or a match with no
+  scoreboard say nothing about skill.
 - Use the "Your trend" lines for any comparison with recent matches. Copy their numbers and their "better" or
   "worse" word. Never write your own comparison, and never invent a number for a match that is not listed.
 - For the crosshair, use the "Crosshair" line. A positive median means the crosshair sat BELOW head height (too low).
