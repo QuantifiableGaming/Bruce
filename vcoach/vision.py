@@ -21,7 +21,9 @@ COLOR_RANGES = {
 # aspect: height / width. Map lines are wide and flat. Light beams are very tall and thin.
 # min_sat: soft coloured smoke and light gradients are less saturated than an outline.
 BLOB_RULES = {
-    "yellow": {"hue": (27.5, 33.5), "max_val": 254, "aspect": (0.8, 8.0), "min_sat": 158},
+    # max_fill: an outline is a thin line, 2 to 7 percent of its box. Yellow-green plants and leaves
+    # (Lotus, 19 Nov custom game) fill 10 to 32 percent and gave +250 px crosshair readings.
+    "yellow": {"hue": (27.5, 33.5), "max_val": 254, "aspect": (0.8, 8.0), "min_sat": 158, "max_fill": 0.09},
     "red": {"hue": None, "max_val": 254, "aspect": (0.8, 8.0)},
     "purple": {"hue": None, "max_val": 254, "aspect": (0.8, 8.0)},
 }
@@ -73,6 +75,8 @@ class EnemyDetector:
             return False
         on = mask > 0
         if not on.any():
+            return False
+        if "max_fill" in r and on.sum() / float(max(1, bw * bh)) > r["max_fill"]:
             return False
         if float(np.median(hsv[..., 2][on])) >= r["max_val"]:
             return False
@@ -131,11 +135,14 @@ class EnemyDetector:
             if dist * scale > self.max_dx:
                 continue
             if best is None or dist < best[0]:
-                best = (dist, py0, ph, px1 - px0)
+                best = (dist, py0, ph, px1 - px0, px0)
         if best is None:
             return result
 
-        _, by, bh, bw = best
+        _, by, bh, bw, bx = best
+        # How much of all the highlight colour near the crosshair is this person. A low share means
+        # a busy scene (yellow plants, 19 Nov custom game): the head height is not reliable then.
+        result["share"] = int(cv2.countNonZero(m[by:by + bh, bx:bx + bw])) / float(max(1, pixels))
         head_y = y0 + by + 0.08 * bh  # The head center sits a little below the top of the outline.
         result["head_offset"] = (h / 2 - head_y) * scale
         result["aspect"] = bh / float(max(1, bw))   # Height / width. A standing person is tall.

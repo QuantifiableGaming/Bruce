@@ -160,7 +160,10 @@ class Analyzer:
                     and enemy["head_offset"] >= cc.get("min_offset_px", -60)
                     # A standing enemy is tall. A wide or square outline is a teammate's marker icon
                     # or a dead body (19 Nov video: these gave +46 to +126 px "too low" readings).
-                    and (enemy.get("aspect") or 9.0) >= cc.get("min_aspect", 1.15)):
+                    and (enemy.get("aspect") or 9.0) >= cc.get("min_aspect", 1.15)
+                    # Most highlight colour near the crosshair must be this person. Else the scene is
+                    # busy (yellow plants on Lotus, 19 Nov custom game: +117 to +267 px readings).
+                    and (enemy.get("share") or 1.0) >= cc.get("min_share", 0.5)):
                 self.round.crosshair_offsets.append(enemy["head_offset"])
                 self.sampled = True
         else:
