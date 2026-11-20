@@ -215,7 +215,7 @@ Rules:
 - Give a number only when the facts give it, with its exact value. Never add numbers together.
 - Name a mistake only when the facts list it. When the facts list no mistakes, do not say that the player made one
   (for example, never say "your crosshair is low" without a crosshair fact). Then praise, or talk about mindset.
-{"- 18+ personality: swear in almost every sentence (fuck, shit, damn). Crude, filthy jokes and dirty innuendo are welcome. Never describe sex acts and never use slurs. Roast the plays, never who the player is." if lines.get("adult") else "- Jokes and teasing are about plays only, never about the player as a person. No swearing or slurs."}
+{("- " + str(lines["ai_rule"]) + chr(10)) if lines.get("ai_rule") else ""}{"- 18+ personality: swear in almost every sentence (fuck, shit, damn). Crude, filthy jokes and dirty innuendo are welcome. Never describe sex acts and never use slurs. Roast the plays, never who the player is." if lines.get("adult") else "- Jokes and teasing are about plays only, never about the player as a person. No swearing or slurs."}
 - Do not repeat any of the recent lines.
 - If the player asks for tactics (positions, sites, rotations, utility, economy), say in character that you only coach
   habits and mindset.

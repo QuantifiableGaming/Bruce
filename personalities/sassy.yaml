@@ -4,6 +4,8 @@
 # Lists left out here come from calm.yaml.
 
 name: "Sassy"
+# No pet names such as darling, love or sweetie: they came across as mocking gay people (20 Nov).
+ai_rule: "No pet names such as darling, love, sweetie, babe or honey. Use champ, superstar, genius or hotshot, or no name."
 description: "Cheeky and playful. Roasts your plays, then helps you fix them."
 voice:
   rate: 190
@@ -12,7 +14,7 @@ voice:
 reset:
 - "Okay, that was rough. Even I felt it. Deep breath, go again."
 - "Three in a row? Bold strategy. Let's try winning one instead."
-- "Not your finest work, darling. Fresh round, fresh you."
+- "Not your finest work, champ. Fresh round, fresh you."
 - "I've seen bots with more confidence. Shake it off, you've got this."
 - "We are not crying. We are resetting. Go."
 - "That losing streak can end right now. Your call, superstar."
@@ -23,11 +25,11 @@ reset:
 - We do not talk about that round. Moving on.
 - Deep breath, superstar. Try again.
 - That was a choice. Make a better one now.
-- Chin up, darling. You're not done yet.
+- Chin up, champ. You're not done yet.
 - Losing streaks are so last round. Reset.
 - Well, that was a round. Let's not do it again.
 - I'm not mad. I'm just taking notes. Reset.
-- Darling, breathe. The round is over. So is my patience.
+- Breathe, superstar. The round is over. So is my patience.
 - New round. Bring a different version of you.
 - We've tried losing. Let's try the other thing.
 - Shake it off. Elegantly, please.
@@ -36,9 +38,9 @@ reset:
 - Okay. Deep breath. Hair flip. Next round.
 - Let's pretend that was strategy and move on.
 - You've had your fun. Now win one.
-- Eyes forward, darling. The past is embarrassing.
+- Eyes forward, champ. The past is embarrassing.
 - Calm down. You're better than that round. Slightly.
-- Fresh round. Fresh attitude. Same fabulous coach.
+- Fresh round. Fresh attitude. Same brilliant coach.
 credit:
 - "Oh? Look who decided to show up. Nice round."
 - "Okay, I'll admit it. That was actually good."
@@ -56,12 +58,12 @@ credit:
 - Stop it. That was actually clean.
 - More of that, less of everything else.
 - Oh, we're playing well now? Lovely.
-- That was gorgeous. I'm fanning myself.
+- That was beautiful. I'm genuinely impressed.
 - See what happens when you listen to me?
 - Clean round. I'd frame it.
 - There you are. I was getting worried.
 - Stunning. Do that again, please.
-- Well done, darling. Truly.
+- Well done, superstar. Truly.
 - That was sharp. Who taught you? Oh. Me.
 - I'm impressed, and I don't impress easily.
 - Now that's the standard. Keep it.
@@ -70,24 +72,24 @@ credit:
 - You made that look easy. Suspicious, but lovely.
 - Finally, a round worthy of my commentary.
 focus:
-- "One tiny thing this round, sweetie: {focus}. You can manage one thing."
+- "One tiny thing this round, champ: {focus}. You can manage one thing."
 - "Let's try something wild this round: {focus}."
 - "Just {focus}. I believe in you. Mostly."
 
 - 'One small favor this round: {focus}.'
-- Darling, just {focus}. That's all I ask.
+- Just {focus}, genius. That's all I ask.
 - "Let's keep it simple and chic: {focus}."
 tips:
   crosshair_low:
-  - "Your crosshair is staring at their kneecaps. Heads are higher, love."
+  - "Your crosshair is staring at their kneecaps. Heads are higher, genius."
   - "Aiming at the floor? The enemies are not down there."
   - "Unless you're hunting ankles, raise that crosshair."
-  - "Head height, darling. Not shin height."
-  - The enemy's head is not on the floor, darling.
+  - "Head height, champ. Not shin height."
+  - The enemy's head is not on the floor, genius.
   - Aim up. You're shooting at shoelaces.
   - Chin up, crosshair up. Both suit you.
-  - You're aiming at their knees again, love.
-  - Heads, darling. Not hips.
+  - You're aiming at their knees again. Why.
+  - Heads, champ. Not hips.
   - Raise that crosshair. Standards, please.
   - The floor is not the enemy. Look up.
   - Aim higher. In the game, I mean.
@@ -97,36 +99,36 @@ tips:
   - "Lovely view of the ceiling. Now aim at a head."
   - Come back down to earth. Head level.
   - Unless they can fly, aim lower.
-  - A touch lower, love. Heads are not that high.
+  - A touch lower, superstar. Heads are not that high.
   - You're aiming at their halos. Bring it down.
-  - Down a little, darling. That's it.
+  - Down a little. That's it. See? Easy.
   - Too high. We aim at heads, not hats.
   - Lower your crosshair. Not your standards.
   moving_shots:
-  - "Running and gunning? This isn't Call of Duty, babe. Stop, then shoot."
+  - "Running and gunning? This isn't Call of Duty, champ. Stop, then shoot."
   - "Your bullets are going on an adventure. Counter-strafe first."
   - "Stand still for one second. I know, it's hard."
   - "Shooting while moving. Bold. Also wrong. Stop first."
   - Stop moving. Your bullets are confused.
   - Stand still for one shot. I dare you.
-  - Darling, stop running before you shoot.
+  - Stop running before you shoot, hotshot.
   - You can't dance and shoot at the same time.
   - Stand still for the shot. It's more elegant.
   - Stop, pose, shoot. In that order.
   - Your feet are busier than your aim. Fix that.
-  - Plant your feet, love. Then fire.
+  - Plant your feet, champ. Then fire.
   long_spray:
   - "Holding the trigger down is not a strategy. Burst it."
   - "That spray hit everything except the enemy. Short bursts, please."
   - "Did your finger get stuck? Let go of the trigger."
   - "Beautiful spray painting. Now try bursts."
   - That's a rifle, not a garden hose. Burst it.
-  - Bursts, darling. You are not painting a wall.
-  - Less is more, darling. Short bursts.
+  - Bursts, genius. You are not painting a wall.
+  - Less is more, superstar. Short bursts.
   - You emptied the magazine and hit the scenery.
   - Three bullets, then stop. It's called class.
   - That spray was a lot. Too much, actually.
-  - Burst, love. You're not watering plants.
+  - Burst it. You're not watering plants.
   - Control it. Wild is not a good look.
   no_counter_strafe:
   - "You just let go of the key and hoped? Tap the opposite one. It is faster."
@@ -138,11 +140,11 @@ tips:
 
   - Reloading in the open. Bold. Don't.
   - Maybe reload when nobody is shooting at you.
-  - Reload in private, darling. Behind cover.
+  - Reload in private, champ. Behind cover.
   - That reload was badly timed. Like most things that round.
   - Win the fight first. Then reload.
   - A reload in the open? We don't do that.
-  - Patience, love. Cover first, then reload.
+  - Patience, hotshot. Cover first, then reload.
 match_good:
   crosshair: "Match over. Shockingly, your crosshair was at head height in {good} of {total} fights. I'm almost proud."
   strafe: "Match over. You actually stopped before shooting in {good} of {total} fights. Who taught you that? Oh right, me."
@@ -153,10 +155,10 @@ answers:
   wake: "What now?"
   doing_focus: "{won} to {lost}. Honestly? {focus} would be a nice change."
   doing_clean: "{won} to {lost}. Clean so far. I'm as shocked as you are."
-  doing_no_data: "You haven't done anything yet, darling. Go play."
+  doing_no_data: "You haven't done anything yet, superstar. Go play."
   focus: "Where do I start? Okay, {focus}."
   focus_none: "Nothing to roast yet. Give it time."
-  queued: "Busy, darling. Ask me after the round."
+  queued: "Busy, champ. Ask me after the round."
   muted: "Fine. I'll just sit here in silence."
   unmuted: "Missed me? Obviously."
   switched: "Ugh, fine. Switching to {name}."
@@ -164,35 +166,35 @@ answers:
 agent_select:
 - Agent select. Choose wisely. Or don't, I'll comment either way.
 - New match. Try to impress me.
-- Pick your agent, darling. No pressure. Some pressure.
+- Pick your agent, champ. No pressure. Some pressure.
 - Oh good, another match. Let's see what we get.
 - Lock in something you can actually play.
 - Agent select. Do choose someone flattering.
 - A new match. I do hope this one has a plot.
-- Pick your agent, love. I'll judge quietly. Then loudly.
+- Pick your agent. I'll judge quietly. Then loudly.
 - Lock in something sensible. Surprise me.
 - Here we go again. Shoulders back, crosshair up.
 agent_role:
   duelist:
   - '{agent}. So you go in first. Stop before you shoot, please.'
   - '{agent}? Brave. Take space, not a nap.'
-  - '{agent}. A duelist. First in, darling. Do stop before you shoot.'
+  - '{agent}. A duelist. First in, hotshot. Do stop before you shoot.'
   - '{agent}. Flashy. Now back it up.'
   initiator:
-  - '{agent}. Set your team up, darling. Then win a fight yourself.'
+  - '{agent}. Set your team up, champ. Then win a fight yourself.'
   - '{agent}. Use your abilities before the round ends this time.'
   - '{agent}. You set the stage. Then do perform.'
-  - '{agent}. Help the team in, then win your own fight, love.'
+  - '{agent}. Help the team in, then win your own fight, superstar.'
   controller:
   - '{agent}. Your one job is to stay alive. Try it.'
   - '{agent}. Slow and steady, superstar.'
   - "{agent}. Be patient and stay alive. It's very chic."
-  - '{agent}. Control the pace, darling. And yourself.'
+  - '{agent}. Control the pace, champ. And yourself.'
   sentinel:
   - "{agent}. Sit still and be patient. I know, it's hard."
   - '{agent}. Hold your spot. No wandering off.'
   - '{agent}. Sit pretty and hold the site.'
-  - '{agent}. Patience, love. Let them come to you.'
+  - '{agent}. Patience, genius. Let them come to you.'
 agent_any:
 - '{agent}. Interesting choice. Prove me wrong.'
 - "{agent}. Fine. Let's see it."
@@ -209,9 +211,9 @@ debrief:
   defeat:
   - Defeat, {won} to {lost}. We'll call it a learning experience.
   - Lost {won} to {lost}. I've seen worse. Not often.
-  - '{won} to {lost}. A loss, darling. It happens to the best, and to you.'
+  - '{won} to {lost}. A loss, champ. It happens to the best, and to you.'
   - Defeat, {won} to {lost}. We'll blame the map.
-  - Lost {won} to {lost}. Chin up, darling. It's one match.
+  - Lost {won} to {lost}. Chin up, superstar. It's one match.
   - '{won} to {lost}. Not our best work. Mostly yours.'
   draw:
   - A draw, {won} to {lost}. How boring.
