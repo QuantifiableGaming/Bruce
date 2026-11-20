@@ -1,113 +1,129 @@
 # Personality: Degen (18+)
-# Adults only. Heavy swearing, crude roasts of your plays and dirty jokes. It still gives the fix.
-# Limits: nothing sexually explicit, no slurs, and the jokes are about plays, not about who you are.
+# Adults only. Swears in almost every line, roasts your plays hard and makes filthy jokes and innuendo.
+# It still gives the fix.
+# Limits: no sexually explicit descriptions, no slurs, and the jokes are about plays, not about who you are.
 # NOT safe for streams. It shows only when coach.allow_18_plus is true (Settings > Coaching).
 # Random, Mix and Twitch chat votes never pick it.
 # Lists left out here come from calm.yaml.
 
 name: "Degen"
-description: "18+ only. Swears, roasts your plays hard and makes dirty jokes. Not for streams."
+description: "18+ only. Swears nonstop, roasts your plays hard and makes filthy jokes. Not for streams."
 adult: true
 voice:
   rate: 192
   name_contains: ""
 
 reset:
-- "Well, that was a shit show. Deep breath, you absolute gremlin. Go again."
-- "Three rounds down the toilet. Flush it and reset."
-- "Fuck that round. Seriously, forget it. Next one."
-- "You're playing like you're hungover. Wake the hell up."
-- "That streak is cursed. Break the curse. Win one, damn it."
-- "Okay, ass-kicking is over for now. Your turn to give one."
-- "Stop sulking, degen. You've survived worse decisions than that."
-- "Shake it off. Even your worst Friday night went better than that."
+- "Well, that was a fucking shit show. Deep breath, you absolute gremlin. Go again."
+- "Three rounds straight down the shitter. Flush it and reset."
+- "Fuck that round. Fuck it right off. Next one."
+- "You're playing like you're hungover and horny. Pick one and wake the fuck up."
+- "That streak is cursed as shit. Break the fucking curse. Win one."
+- "Okay, they've been bending you over for three rounds. Your turn to fuck them up."
+- "Stop sulking, degen. You've survived way shittier decisions than that."
+- "Shake it off. Even your worst Friday night ended better than this crap."
+- "Holy shit, that was bad. Like, walk-of-shame bad. Reset."
+- "You're getting bodied. Stop taking it lying down and fucking fight back."
+- "Christ on a bike. Breathe, reset, and stop giving them free shit."
 credit:
-- "Holy shit. Who are you and where's the bum I usually coach?"
-- "Now that was filthy. In the good way."
-- "Damn, that was clean. Don't let it go to your head."
-- "Fuck yes. More of that."
+- "Holy shit. Who the fuck are you and where's the bum I usually coach?"
+- "Now that was filthy. Nasty. I need a cigarette."
+- "Damn, that was clean as fuck. Don't let it go to your head."
+- "Fuck yes. More of that, you beautiful bastard."
 - "That round was sexier than your search history. Barely."
-- "Look at you, finally earning the attention."
-- "Clip it before you ruin it, legend."
-- "That was nasty. I'm proud and a little scared."
+- "Look at you, finally earning the fucking attention."
+- "Clip it before you ruin it, you lucky shit."
+- "That was nasty. I'm proud and a little turned on. Kidding. Mostly."
+- "Fucking hell, you dropped them like bad habits."
+- "Absolute filth. They'll be thinking about that one in the shower."
+- "Holy fuck, you actually did it. Frame it."
 focus:
 - "One fucking thing this round: {focus}. That's it."
-- "Listen, degen. {focus}. Do it or I'll roast you all night."
-- "Simple job this round: {focus}. Don't screw it up."
+- "Listen, degen. {focus}. Do it or I'll roast your ass all night."
+- "Simple shit this round: {focus}. Don't fuck it up."
+- "Focus on {focus}. Not your phone, not your snacks. {focus}. Fucking go."
 tips:
   crosshair_low:
-  - "Your crosshair is down at their ankles. Aim at the damn head."
-  - "Why are you aiming at the floor? Is there money down there? Head height."
-  - "Stop staring at their feet, weirdo. Crosshair up."
+  - "Your crosshair is down at their fucking ankles. Aim at the head."
+  - "Why the hell are you aiming at the floor? Is there money down there? Head height."
+  - "Stop staring at their feet, you weirdo. Crosshair up, for fuck's sake."
+  - "You're aiming at their crotch. I'm not judging, but heads give more damage. Up."
   crosshair_high:
-  - "You're aiming at the sky like it owes you money. Bring it down."
-  - "Lower, champ. Heads, not birds."
+  - "You're aiming at the sky like it owes you money. Bring that shit down."
+  - "Lower, champ. Heads, not fucking birds."
   moving_shots:
-  - "Running and gunning like a headless chicken. Stop, then shoot."
-  - "You can't shoot for shit while you move. Plant your feet."
-  - "Stop dancing, you're not in a club. Stand still, then fire."
-  - "Moving shots again? Bold. Stupid, but bold. Stop first."
+  - "Running and gunning like a headless fucking chicken. Stop, then shoot."
+  - "You can't shoot for shit while you move. Plant your damn feet."
+  - "Stop dancing, you're not in a strip club. Stand still, then fire."
+  - "Moving shots again? Bold. Fucking stupid, but bold. Stop first."
+  - "Every bullet you fire on the move goes to fucking Narnia. Stop, then shoot."
   long_spray:
   - "You sprayed that like a broken fire hose. Short bursts, damn it."
-  - "All that spray and nothing landed. Story of your life. Burst it."
+  - "All that spray and nothing landed. Story of your fucking life. Burst it."
   - "Let go of the trigger, you maniac. Three or four shots."
+  - "Finishing early is fine here. Tap, tap, let go. Stop holding it forever."
   no_counter_strafe:
-  - "Your stops are slow as hell. Tap the opposite key, then shoot."
+  - "Your stops are slow as shit. Tap the opposite key, then shoot."
   - "Let go and tap the other way. It stops you faster, genius."
+  - "You slide around like your floor is lubed. Counter-strafe, damn it."
   bad_reload:
-  - "Reloading in the middle of a gunfight? Fucking brave. Also dead. Cover first."
-  - "Who reloads in the open? You, apparently. Win the fight, then reload."
+  - "Reloading in the middle of a gunfight? Fucking brave. Also fucking dead. Cover first."
+  - "Who the hell reloads in the open? You, apparently. Win the fight, then reload."
+  - "Pulling out early to reload? Bad move, every time. Finish the fight first."
 match_good:
-  crosshair: "Match over. Your crosshair was at head height in {good} of {total} fights. Not bad, you degenerate."
-  strafe: "Match over. You stopped before shooting in {good} of {total} fights. Hell yes."
-  credit: "Match over. {count} highlight rounds. Filthy."
-  fallback: "Match over. Read the report. Drink some water. Touch some grass."
+  crosshair: "Match over. Your crosshair was at head height in {good} of {total} fights. Not bad, you degenerate fuck."
+  strafe: "Match over. You stopped before shooting in {good} of {total} fights. Hell fucking yes."
+  credit: "Match over. {count} highlight rounds. Absolutely filthy."
+  fallback: "Match over. Read the report. Drink some water. Touch some grass, you goblin."
 
 answers:
-  wake: "What the hell do you want?"
-  doing_focus: "{won} to {lost}. Not terrible. Now work on {focus}, damn it."
-  doing_clean: "{won} to {lost}, and no mistakes. Who hacked you?"
-  doing_no_data: "You haven't done shit yet. Go play."
+  wake: "What the fuck do you want?"
+  doing_focus: "{won} to {lost}. Not fucking terrible. Now work on {focus}, damn it."
+  doing_clean: "{won} to {lost}, and no mistakes. Who the fuck hacked you?"
+  doing_no_data: "You haven't done shit yet. Go fucking play."
   focus: "Start with {focus}. Right now it is a fucking mess."
-  focus_none: "Nothing to roast yet. Give it a round, you'll screw up."
-  queued: "Busy watching you suffer. Ask me after the round."
-  muted: "Fine. Shutting the hell up."
-  unmuted: "I'm back, baby. Miss the abuse?"
-  switched: "Switching to {name}. Boring, but okay."
-  unknown: "What the hell did you just say? Again."
+  focus_none: "Nothing to roast yet. Give it a round, you'll fuck something up."
+  queued: "Busy watching you suffer. Ask me after the round, dickhead."
+  muted: "Fine. Shutting the fuck up."
+  unmuted: "I'm back, baby. Miss the abuse, you little masochist?"
+  switched: "Switching to {name}. Boring as shit, but okay."
+  unknown: "What the fuck did you just say? Again."
 agent_select:
-- "Agent select. Pick something you can actually play, degen."
-- "New match. Let's see how you screw this one up."
-- "Lock in, champ. And don't instalock and cry."
+- "Agent select. Pick something you can actually fucking play, degen."
+- "New match. Let's see how you fuck this one up."
+- "Lock in, champ. And don't instalock and then cry about it in fucking chat."
+- "Agent select. Choose wisely, or choose Reyna and pray. Your fucking call."
 agent_role:
   duelist:
   - "{agent}. Entry and die, the classic. Stop before you shoot, idiot."
-  - "{agent}. Go in first. Try not to feed like a damn buffet."
+  - "{agent}. Go in first. Try not to feed like a fucking all-you-can-eat buffet."
   initiator:
-  - "{agent}. Use your shit before you die with it."
+  - "{agent}. Use your shit before you die with it, for fuck's sake."
   controller:
-  - "{agent}. Smokes first, ego second. Stay alive."
+  - "{agent}. Smokes first, ego second. Stay the fuck alive."
   sentinel:
-  - "{agent}. Sit your ass down and hold the site."
+  - "{agent}. Sit your ass down and hold the damn site."
 agent_any:
-- "{agent}. Bold choice. Don't fuck it up."
+- "{agent}. Bold fucking choice. Don't fuck it up."
 debrief:
   victory:
-  - "Victory, {won} to {lost}. Hell yes. Drinks are on you."
-  - "You won {won} to {lost}. Filthy. I'm proud, don't make it weird."
+  - "Victory, {won} to {lost}. Hell fucking yes. Drinks are on you."
+  - "You won {won} to {lost}. Filthy. I'm proud as shit, don't make it weird."
+  - "{won} to {lost}, you absolute dog. They got fucked."
   defeat:
-  - "Defeat, {won} to {lost}. What a shit show. We go again."
-  - "Lost {won} to {lost}. That hurt to watch. Next one, champ."
+  - "Defeat, {won} to {lost}. What a fucking shit show. We go again."
+  - "Lost {won} to {lost}. That hurt to watch. Like, physically. Next one, champ."
+  - "{won} to {lost}. They had their way with you. Shower, then revenge."
   draw:
-  - "A draw, {won} to {lost}. All that sweat for nothing."
+  - "A draw, {won} to {lost}. All that fucking sweat for nothing."
   unknown:
   - "Match over. Thank fuck."
-  good_crosshair: "Your crosshair was at head height in {good} of {total} fights. Not bad."
+  good_crosshair: "Your crosshair was at head height in {good} of {total} fights. Not fucking bad."
   good_strafe: "You stopped before shooting in {good} of {total} fights. Hell yes."
-  good_credit: "Highlight rounds: {count}. Filthy."
+  good_credit: "Highlight rounds: {count}. Filthy as fuck."
   work_on: "Next match, work on {focus}, damn it."
-  clean: "No repeated mistakes. Who the hell are you?"
+  clean: "No repeated mistakes. Who the fuck are you?"
   signoff:
   - "Report saved. Go hydrate, degen."
-  - "That's it. Log off and touch some grass."
-  - "Session over. Same time tomorrow, you addict."
+  - "That's it. Log the fuck off and touch some grass."
+  - "Session over. Same time tomorrow, you filthy addict."
