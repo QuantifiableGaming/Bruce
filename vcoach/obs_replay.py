@@ -6,6 +6,11 @@
 3. The coach switches OBS to the replay scene. Your viewers see the replay. Your game does not change.
 4. When the replay ends, the coach switches back to the scene you were on.
 
+"Bruce, slow mo" does the same, but plays only the last half of the clip, at half speed. The length
+follows your OBS replay buffer time: a 20 second clip gives 10 seconds of slow motion (20 seconds
+on stream), a 30 second clip gives 15. It uses the speed setting of the OBS media source, so no
+video is made again.
+
 What you set up in OBS once:
 - Tools > WebSocket Server Settings: turn on the server. Note the port and the password.
 - Settings > Output > Replay Buffer: turn it on, and set the time (for example 20 seconds).
@@ -44,6 +49,8 @@ class ObsReplay:
         self.when = str(oc.get("when") or "now")             # "now" or "after_round"
         self.max_s = float(oc.get("max_length_s") or 30)
         self.save_wait_s = float(oc.get("save_wait_s") or 10)
+        self.slow_part = float(oc.get("slowmo_part") or 0.5)          # The last half of the clip.
+        self.slow_speed = int(oc.get("slowmo_speed_percent") or 50)   # 50: half speed.
         self.factory = client_factory
         self.log = log
         self.jobs = queue.Queue()
@@ -54,13 +61,14 @@ class ObsReplay:
 
     # --- Called by the session ---
 
-    def request(self, round_live):
-        """Save a replay now. Play it now, or at the round end when "when" is "after_round"."""
+    def request(self, round_live, slow=False):
+        """Save a replay now. Play it now, or at the round end when "when" is "after_round".
+        slow: play only the last seconds, in slow motion."""
         if not self.enabled:
             return "off"
         later = self.when == "after_round" and round_live
         self._start_worker()
-        self.jobs.put(("save_hold" if later else "save_play", None))
+        self.jobs.put(("save_hold" if later else "save_play", slow))
         return "later" if later else "now"
 
     def save_only(self):
@@ -124,20 +132,20 @@ class ObsReplay:
 
     def _run(self):
         while True:
-            kind, _ = self.jobs.get()
+            kind, slow = self.jobs.get()
             try:
                 if kind == "save_keep":
                     self._save()
                 elif kind in ("save_play", "save_hold"):
                     path = self._save()
                     if path and kind == "save_play":
-                        self._play(path)
+                        self._play(path, slow)
                     elif path:
-                        self.held.append(path)
+                        self.held.append((path, slow))
                         self.log("[replay] Saved. It plays at the end of the round.")
                 elif kind == "play_held":
                     while self.held:
-                        self._play(self.held.pop(0))
+                        self._play(*self.held.pop(0))
             except Exception as exc:
                 self.client = None       # Connect again next time.
                 self.log(f"[replay] OBS error: {exc}")
@@ -172,23 +180,47 @@ class ObsReplay:
         self.log("[replay] OBS did not save a replay. Is the replay buffer started?")
         return None
 
-    def _play(self, path):
+    def _jump_to_end(self, c):
+        """Slow motion: wait for the clip to start, then jump to its last part (slow_part).
+        Returns the length of that part in seconds, or None when OBS gave no clip length."""
+        end = time.monotonic() + START_WAIT_S
+        while time.monotonic() < end:
+            status = c.get_media_input_status(self.media)
+            length = _field(status, "media_duration", "mediaDuration")
+            if _field(status, "media_state", "mediaState") == PLAYING and length:
+                part_ms = length * min(1.0, max(0.05, self.slow_part))
+                c.set_media_input_cursor(self.media, int(length - part_ms))
+                return part_ms / 1000.0
+            time.sleep(0.1)
+        return None
+
+    def _play(self, path, slow=False):
         c = self._connect()
         back = _field(c.get_current_program_scene(), "current_program_scene_name", "scene_name", "currentProgramSceneName")
         # "is_local_file" must be on: with it off, OBS plays the "input" web address and
         # ignores local_file, so the replay scene stays black (17 Nov). The other settings
-        # make the clip play once and show nothing at the end.
+        # make the clip play once and show nothing at the end. speed_percent is set each
+        # time, so a normal replay after a slow one plays at full speed.
         c.set_input_settings(self.media, {"is_local_file": True, "local_file": path, "looping": False,
-                                          "restart_on_activate": True, "clear_on_media_end": True}, True)
+                                          "restart_on_activate": True, "clear_on_media_end": True,
+                                          "speed_percent": self.slow_speed if slow else 100}, True)
         c.trigger_media_input_action(self.media, RESTART)
+        part_s = self._jump_to_end(c) if slow else None
+        if slow and part_s is None:
+            self.log("[replay] Could not read the clip length. The slow motion plays from the start.")
         if back != self.scene:
-            c.set_current_program_scene(self.scene)
+            c.set_current_program_scene(self.scene)   # After the jump, so viewers do not see the start.
         self.busy = True
-        self.log("[replay] Playing on stream.")
+        if slow and part_s:
+            self.log(f"[replay] Playing the last {part_s:.0f} seconds on stream in slow motion.")
+        else:
+            self.log("[replay] Playing on stream" + (" in slow motion." if slow else "."))
+        # At half speed, a part plays for twice its length. max_s still caps a normal replay.
+        limit = (part_s or self.max_s) * 100.0 / max(1, self.slow_speed) + 5 if slow else self.max_s
         start = time.monotonic()
         time.sleep(1.0)                  # The media source needs a moment to start.
         started = False
-        while time.monotonic() - start < self.max_s:
+        while time.monotonic() - start < limit:
             state = _field(c.get_media_input_status(self.media), "media_state", "mediaState")
             if state == PLAYING:
                 started = True

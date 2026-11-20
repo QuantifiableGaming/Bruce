@@ -65,6 +65,7 @@ Unzip the new version over the coach folder. Your settings stay: they are in `co
 | Change personality | Say "Bruce, switch to sassy", or use the menu at the top of the panel. |
 | Mark a moment for a video | Say "Bruce, mark that". The time goes into the match report. |
 | Instant replay on stream | Say "Bruce, replay that" (needs OBS, see the PDF). |
+| Slow motion replay on stream | Say "Bruce, slow mo" or "Bruce, slow motion". It plays the last half of the clip at half speed. |
 | Range challenge | In the Range, say "Bruce, start the challenge". Then do 20 strafe, stop and shoot. |
 | Rate the last round | Say "Bruce, rate that round". |
 | Get roasted | Say "Bruce, roast me". |

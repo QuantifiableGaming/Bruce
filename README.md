@@ -226,6 +226,7 @@ Say **"Hey Bruce"** to chat, and **"Bruce"** to get coaching.
 |---|---|---|
 | "Bruce, mark that" / "clip that" | Saves the moment (clock time, round, score) in the match report under "Clips to post", and says "Marked." If you set `creator.clip_hotkey`, it also presses your recording app's clip key. | At once |
 | "Bruce, replay that" | An instant replay on your stream through OBS. See "Instant replay on stream". | At once |
+| "Bruce, slow mo" | The last half of the replay at half speed. Also: "slow motion", "slow that down", "replay that in slow motion". | At once |
 | "Bruce, start the challenge" | The Range challenge. See "Range challenge". "Bruce, stop the challenge" ends it. | In the Range |
 | "Bruce, say hi to chat" | A short intro line for your stream or video. | At once |
 | "Bruce, sign off" | A short outro line. | At once |
@@ -414,6 +415,8 @@ Do not zip the coach folder yourself. It has your API keys (`secrets.yaml`), you
 ## Instant replay on stream (OBS)
 
 Say "Bruce, replay that" (or "instant replay", or "run it back"). The coach tells OBS Studio to save its replay buffer and play it in your replay scene. Your viewers see the replay. Your game screen does not change. Turn it on in the Control Panel: **Settings > Stream instant replay (OBS)**. The OBS steps are on page 2 of `Coach Commands and OBS Setup.pdf`. Page 1 lists all voice commands.
+
+Say "Bruce, slow mo" (or "slow motion", "slow that down", "replay that in slow motion") for a slow motion replay. The coach plays the last half of the clip at half speed, so it follows your OBS replay buffer time: a 20 second buffer gives 10 seconds of slow motion, which take 20 seconds on stream. A 30 second buffer gives 15 seconds. To change this, set `obs_replay.slowmo_part` (0.5 is half the clip) and `obs_replay.slowmo_speed_percent` (50 is half speed).
 
 ## ElevenLabs voices (optional)
 

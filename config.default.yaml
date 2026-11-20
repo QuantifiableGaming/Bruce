@@ -171,6 +171,8 @@ obs_replay:                    # "Bruce, replay that": an instant replay on your
   when: now                    # now: play at once. after_round: save at once, play when the round ends.
   max_length_s: 30             # Switch back to your scene after this long, even if the replay is longer.
   save_wait_s: 10              # How long to wait for OBS to write the replay file.
+  slowmo_part: 0.5             # "Bruce, slow mo": the last half of the clip (OBS replay buffer time: 20 s gives 10 s)...
+  slowmo_speed_percent: 50     # ...at this speed. 50 is half speed, so the slow motion lasts as long as the clip.
 
 elevenlabs:
   enabled: false               # true: the coach speaks with ElevenLabs voices. Set it up on the Settings page of the Control Panel.

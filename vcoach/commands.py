@@ -2,10 +2,11 @@
 import re
 
 # Commands that never give performance guidance. They run at once, even mid-round.
-INSTANT = {"mute", "unmute", "personality", "help", "repeat", "wake", "mark", "intro", "outro", "replay", "challenge"}
+INSTANT = {"mute", "unmute", "personality", "help", "repeat", "wake", "mark", "intro", "outro", "replay", "slowmo",
+           "challenge"}
 # Commands for content creators. mark, intro and outro run at once. roast, hype, rate and recap
 # talk about your play, so they wait for the end of the round like the coaching answers.
-CREATOR = {"mark", "replay", "intro", "outro", "roast", "hype_me", "rate", "recap"}
+CREATOR = {"mark", "replay", "slowmo", "intro", "outro", "roast", "hype_me", "rate", "recap"}
 
 
 def normalize(text):
@@ -55,7 +56,7 @@ HELP_PHRASES = ["help", "what can you do", "what can i say", "what can i ask", "
 HELP_TEXT = ("Say Hey {coach} to chat about anything. "
              "Say {coach}, then: how am I doing, what should I work on, what's the score, say that again, "
              "mute, unmute, or switch to a personality. To keep a fact about you: remember that, then the fact. "
-             "Also: what do you know about me, and forget that. In the Range: start the challenge. For videos: mark that, replay that, rate that round, roast me, "
+             "Also: what do you know about me, and forget that. In the Range: start the challenge. For videos: mark that, replay that, slow mo, rate that round, roast me, "
              "hype me up, recap, say hi, and sign off.")
 
 # Words the speech recognizer often hears instead of the real word.
@@ -117,6 +118,11 @@ def parse(text, personalities):
         return ("challenge", "stop")
     if _has(t, ["challenge", "start the challenge", "range challenge", "test my stops"]):
         return ("challenge", "start")
+    # Before "replay": "replay that in slow motion" is a slow replay. "Slow mode" and "slow more"
+    # are what the voice model often hears for "slow mo".
+    if _has(t, ["slow mo", "slowmo", "slow-mo", "slow motion", "slow mode", "slow more", "slo mo", "slow it down",
+                "slow that down", "slow down that", "slow down the replay", "half speed"]):
+        return ("slowmo", None)
     if _has(t, ["replay that", "replay it", "replay this", "instant replay", "run it back", "run that back",
                 "show the replay", "play it back", "replay"]):
         return ("replay", None)

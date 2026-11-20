@@ -100,6 +100,8 @@ SHORTS = {
     "THRIFTY": (["Won it on a budget.", "Eco round, full win.", "Pistols beat rifles today."],
                 "#valorant #thrifty #gamingclips #shorts"),
     "Replay": (["Watch that again.", "Run it back.", "One more time, slower."], "#valorant #highlights #gamingclips #shorts"),
+    "Slow motion replay": (["Watch it in slow motion.", "Slowed down so you can see it.", "Half speed. Full disrespect."],
+                           "#valorant #slowmo #highlights #shorts"),
     "Marked": (["Wait for it...", "You have to see this round.", "Did that just happen?"], "#valorant #gaming #gamingclips #shorts"),
 }
 
@@ -774,15 +776,16 @@ class Session:
             return pick(cl["recap"]).format(won=c.won, lost=c.lost, deaths=deaths, focus_line=fl)
         return c.lines["answers"]["unknown"]
 
-    def _replay(self, t):
-        """Instant replay on your stream (OBS). It also marks the moment in the report."""
-        self._mark(t, press_clip=False, moment="Replay")
+    def _replay(self, t, slow=False):
+        """Instant replay on your stream (OBS). It also marks the moment in the report.
+        slow: the last seconds of the replay, in slow motion."""
+        self._mark(t, press_clip=False, moment="Slow motion replay" if slow else "Replay")
         if not self.obs:
             print("[replay] Instant replay is off. Turn it on in the Control Panel: Settings > Stream instant replay (OBS).")
             self._say("Instant replay is off. Turn it on in the Control Panel settings.")
             return
         live = not self.speech_allowed(t)
-        if self.obs.request(live) == "later":
+        if self.obs.request(live, slow=slow) == "later":
             print("[replay] The round is live. The replay plays on stream at the end of the round.")
 
     # ---------- Twitch chat ----------
@@ -917,7 +920,7 @@ class Session:
     FOLLOW_UP = "\x00follow:"            # WakeListener marks a follow-up (no wake word) with this.
     CHAT = "\x00chat:"                   # ... and "Hey Bruce" (chat mode) with this.
     # In chat mode these still work as commands. Anything else is chat.
-    CHAT_COMMANDS = {"wake", "mute", "unmute", "help", "repeat", "replay", "challenge", "mark", "personality",
+    CHAT_COMMANDS = {"wake", "mute", "unmute", "help", "repeat", "replay", "slowmo", "challenge", "mark", "personality",
                      "remember", "forget", "profile", "roast", "hype_me", "rate", "recap", "intro", "outro"}
     IGNORE_FOLLOW_UPS = {"ok", "okay", "yeah", "yes", "no", "thanks", "thank you", "cheers", "cool", "nice", "huh",
                          "right", "alright", "sure", "mm", "the", "a"}
@@ -952,8 +955,8 @@ class Session:
             self._say(HELP_TEXT.replace("{coach}", coach_name(self.cfg)))
         elif intent == "repeat":
             self.voice.say(self.last_said or a["repeat_none"])
-        elif intent == "replay":
-            self._replay(t)
+        elif intent in ("replay", "slowmo"):
+            self._replay(t, slow=intent == "slowmo")
         elif intent == "challenge":
             self._challenge_command(arg)
         elif intent in ("remember", "forget", "profile"):
