@@ -150,6 +150,7 @@
     <button data-p="ai"><span class="ico">&#10022;</span>AI coach</button>
     <button data-p="settings"><span class="ico">&#9881;</span>Settings</button>
     <button data-p="reports"><span class="ico">&#9776;</span>Reports</button>
+    <button data-p="commands"><span class="ico">&#128483;</span>Commands</button>
     <button data-p="help"><span class="ico">?</span>Help</button>
     <div class="bottom">Runs on this PC only.<br>Keep the small black window open.</div>
   </nav>
@@ -374,6 +375,12 @@
     </section>
 
     <!-- HELP -->
+    <section class="page" id="p-commands">
+      <h1>Voice commands</h1>
+      <p class="sub" id="cmdSub">Say the coach's name, then the command.</p>
+      <div id="cmdView"></div>
+    </section>
+
     <section class="page" id="p-help">
       <h1>Help</h1>
       <p class="sub">The quick start guide. The full guide is in <code>README.md</code> in the coach folder.</p>
@@ -437,6 +444,7 @@ function go(page) {
   document.querySelectorAll(".page").forEach((p) => p.classList.toggle("sel", p.id === "p-" + page));
   if (page === "regions" && !$("editorFrame").src) $("editorFrame").src = "/editor";
   if (page === "home") refresh();
+  if (page === "commands") loadCommands();
   if (page === "voice") loadVoice();
   if (page === "settings") { loadSettings(); loadVoice(); loadEleven(); }
   if (page === "reports") loadReports();
@@ -552,6 +560,14 @@ function renderCoachState(on) {
   $("startBtn").style.display = on ? "none" : "";
   $("stopBtn").style.display = on ? "" : "none";
 }
+async function loadCommands() {
+  const c = await api("/api/commands"); if (!c) return;
+  $("cmdSub").textContent = `Say "${c.coach}", then the command. The words in grey also work.`;
+  $("cmdView").innerHTML = c.groups.map((g) => `<div class="card md"><h2 style="margin-top:0">${esc(g.name)}</h2><table>` +
+    g.items.map((i) => `<tr><td style="width:38%"><b>${esc(i.say)}</b></td><td>${esc(i.does)}` +
+      (i.also ? `<br><span class="note">Also: ${esc(i.also)}</span>` : "") + `</td></tr>`).join("") + `</table></div>`).join("") +
+    `<div class="card md"><h2 style="margin-top:0">When the coach talks</h2><ul>${c.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></div>`;
+}
 async function startCoach() {
   await refresh();
   if (ST && ST.packages_missing.length) {
@@ -565,7 +581,7 @@ async function startCoach() {
   toast(recording ? "Coach started. This match is recorded." : "Coach started. Start Valorant now.");
   if (ST) ST.record_next = false;  // Recording is for one match only.
   showRecord();
-  $("drawer").classList.add("open");
+  go("commands");   // The command list is the most useful page while you play. "Coach log" opens the log.
   renderCoachState(true); pollCoach();
 }
 $("startBtn").onclick = startCoach;

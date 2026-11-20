@@ -412,6 +412,14 @@ class PanelServer(EditorServer):
             return h._send(200, self.coach.info() if self.coach else {"running": False, "lines": [], "count": 0})
         if path == "/api/reports":
             return h._send(200, self.reports())
+        if path == "/api/commands":
+            from .command_list import command_groups
+
+            try:
+                cfg = self.cfg() or {}
+            except OSError:
+                cfg = {}
+            return h._send(200, command_groups(cfg))
         if path == "/api/history":
             from . import history
 
