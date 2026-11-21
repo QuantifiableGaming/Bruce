@@ -178,8 +178,12 @@ def press_hotkey(spec):
 
 SUMMARY_REMINDER = ("Before you close me, open the SUMMARY tab for 5 seconds, "
                     "so I can read your scoreboard for the report.")
-SUMMARY_GOT = ("Got your scoreboard: combat score {score}, {kills} kills, {deaths} deaths, {assists} assists. "
-               "It is in the report.")
+SUMMARY_GOT = "Got your scoreboard: combat score {score}, {kills}, {deaths}, {assists}. It is in the report."
+
+
+def _count(n, word):
+    """ "1 kill", "2 kills" (21 Nov: the coach said "1 kills")."""
+    return f"{n} {word}" + ("" if n == 1 else "s")
 SUMMARY_UNREAD = "I can see the scoreboard, but I cannot read your numbers. I saved a picture in the logs folder."
 SUMMARY_REMINDERS = 3      # The reminder stops after the coach has read this many scoreboards.
 
@@ -238,6 +242,7 @@ class Session:
         self.crosshair_on = bool(cfg["checks"]["crosshair"].get("enabled", True))   # Off: no enemy search.
         self.detector = EnemyDetector(cfg)
         self.analyzer = Analyzer(cfg, inputs=inputs)
+        self.analyzer.round_no = 1
         self.analyzer.on_shot = self._challenge_shot
         self.challenge = None          # challenge.Challenge while a Range challenge runs
         self.clock_phase = None
@@ -391,8 +396,9 @@ class Session:
             return
         last["board_saved"] = True
         print(f"[scoreboard] Your line: {numbers}")
-        self._say(SUMMARY_GOT.format(score=numbers["score"], kills=numbers["kills"],
-                                     deaths=numbers["deaths"], assists=numbers["assists"]))
+        self._say(SUMMARY_GOT.format(score=numbers["score"], kills=_count(numbers["kills"], "kill"),
+                                     deaths=_count(numbers["deaths"], "death"),
+                                     assists=_count(numbers["assists"], "assist")))
         state = load_state(self.cfg)
         state["scoreboards_read"] = int(state.get("scoreboards_read", 0)) + 1
         save_state(self.cfg, state)
@@ -419,18 +425,29 @@ class Session:
     def _handle(self, t, events):
         for kind, data, stats in events:
             if kind == "round_end":
-                msg = self.coach.round_end(data["won"], data["credit"], stats, data.get("score"))
+                banner = data["credit"]
+                # The ACE and CLUTCH banners show for a teammate's ACE too. If you died in the round,
+                # it was not yours (21 Nov: "you just ACE'd that round" after you died).
+                teammate = str(banner or "").upper() in ("ACE", "CLUTCH") and stats.deaths
+                credit = None if teammate else banner
+                msg = self.coach.round_end(data["won"], credit, stats, data.get("score"))
                 n = self.coach.round_no
                 score = f" | score {self.coach.won}-{self.coach.lost}" if data.get("score") else ""
-                credit = f" ({data['credit']})" if data["credit"] else ""
-                print(f"Round {n}: {'won' if data['won'] else 'lost'}{credit}{score} | {stats.summary()}")
-                row = self.report.add(n, data["won"], data["credit"], stats, msg[1] if msg else None)
-                self.last_round = (data["won"], data["credit"], stats)
-                if data["won"] and data["credit"]:
-                    self._auto_clip(t, data["credit"], stats)
+                label = f"teammate {banner}" if teammate else banner
+                shown = f" ({label})" if label else ""
+                print(f"Round {n}: {'won' if data['won'] else 'lost'}{shown}{score} | {stats.summary()}")
+                row = self.report.add(n, data["won"], label, stats, msg[1] if msg else None)
+                self.last_round = (data["won"], credit, stats)
+                self.analyzer.round_no = self.coach.round_no + 1    # For the "[death]" log line.
+                if data["won"] and banner:
+                    self._auto_clip(t, banner, stats)
                 if msg:
                     kind = msg[0]
-                    extra = f"Highlight: {data['credit']}." if data["credit"] else None
+                    if teammate:
+                        extra = (f"A teammate got the {banner} this round. The player died, so the {banner} "
+                                 "is not the player's. Do not praise the player for it.")
+                    else:
+                        extra = f"Highlight: {credit}." if credit else None
                     report = self.report
                     self._speak(kind, msg[1], stats=stats, issue=self.coach.last_issue, extra=extra,
                                 after=lambda text, r=row, rep=report: rep.set_message(r, text))
@@ -581,8 +598,14 @@ class Session:
                 closing = f"{closing} {change}"
             remind = (not stopped) and self._summary_reminder_on()
             if speak and next_match:
+                deaths = sum(r.deaths for r in self.analyzer.rounds)
+                # 21 Nov: the AI read "Watch this: Deaths per round, 0.8" as "zero deaths, damn good".
                 self._speak("debrief", closing, max_words=70,
-                            extra=f"Result: {result or 'unknown'}. Final score {final}. Scripted debrief: {closing}",
+                            extra=f"Result: {result or 'unknown'}. Final score {final}. "
+                                  f"Deaths this match: {deaths} in {len(self.analyzer.rounds)} rounds. "
+                                  "A sentence that starts with \"Watch this\" is a number that got worse. "
+                                  "\"Progress\" is a number that got better. Copy its numbers. "
+                                  f"Scripted debrief: {closing}",
                             after=(lambda _text: self._say(SUMMARY_REMINDER)) if remind else None)
             else:
                 print(f"[coach] (not spoken) {closing}")
@@ -598,6 +621,7 @@ class Session:
                                "extra_round": extra_round, "final": final, "in_history": not stopped}
         self.coach.new_match()
         self.analyzer.new_match()
+        self.analyzer.round_no = 1
         self.talk.clear()
         self.report = Report(self.cfg.get("reports_dir", "reports"),
                              show_crosshair=self.cfg["checks"]["crosshair"].get("enabled", True))

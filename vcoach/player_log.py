@@ -26,6 +26,8 @@ def player_line(line):
         if text.startswith("(not spoken) "):
             return None
         return f"Coach: {text}"
+    if line.startswith("[death] "):
+        return line[len("[death] "):].split(" Seen by:")[0]
     if line.startswith("[mark] "):
         return "Marked: " + line[len("[mark] "):]
     if line.startswith("[replay] "):

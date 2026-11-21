@@ -327,7 +327,7 @@ class Analyzer:
             # "SWITCH PLAYER" shows: you are dead, and the HUD shows a teammate's ammo and health.
             if self.health.alive and not self._between_rounds(t):
                 self.health.alive = False
-                self.round.deaths += 1
+                self._died("SWITCH PLAYER shows")
                 self._ammo_events(t, self.ammo.flush())
             self.last_hud_ok_t = t
             ammo = health = None
@@ -339,7 +339,7 @@ class Analyzer:
                 if self._between_rounds(t):
                     self.health.alive = True   # A 0 between rounds is not a death in the next round.
                 else:
-                    self.round.deaths += 1
+                    self._died("health 0")
         self._check_death(t, ammo, health)
         if self.health.alive:
             self._ammo_events(t, self.ammo.update(t, ammo))
@@ -393,8 +393,16 @@ class Analyzer:
         if (t - self.hud_gone_t >= 1.2 and self.hud_gone_t - self.last_damage_t <= 3.0
                 and not self._between_rounds(t)):
             self.health.alive = False
-            self.round.deaths += 1
+            self._died("the HUD went away after damage")
             self._ammo_events(t, self.ammo.flush())
+
+    round_no = None      # Set by the session, for the log line.
+
+    def _died(self, how):
+        """Count a death, with one log line (21 Nov: the player asked to see deaths in the log)."""
+        self.round.deaths += 1
+        where = f" (round {self.round_no})" if self.round_no else ""
+        print(f"[death] You died{where}. Seen by: {how}.")
 
     def _close_round(self, t):
         self._ammo_events(t, self.ammo.flush())
