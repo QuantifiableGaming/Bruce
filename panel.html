@@ -390,7 +390,9 @@
 </div>
 
 <div class="drawer" id="drawer">
-  <header>Coach log <span class="spacer"></span><button class="btn ghost small" id="drawerClose">&times;</button></header>
+  <header>Coach log <span class="spacer"></span>
+    <label class="note" title="Show every line, for finding problems"><input type="checkbox" id="logDebug"> Debug</label>
+    <button class="btn ghost small" id="drawerClose">&times;</button></header>
   <div class="log" id="coachLog"></div>
 </div>
 
@@ -595,7 +597,7 @@ async function pollCoach() {
   while (true) {
     const c = await api("/api/coach");
     if (!c) break;
-    setLog($("coachLog"), c.lines || []);
+    setLog($("coachLog"), ($("logDebug").checked ? c.lines : c.player_lines) || []);
     renderCoachState(c.running);
     if (!c.running) { if (c.code && c.code !== 0 && !c.stopped_by_user && !userStopped) toast("The coach stopped with an error. Open the coach log.", true, 6000); refresh(); break; }
     await new Promise((r) => setTimeout(r, 1500));

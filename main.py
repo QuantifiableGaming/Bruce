@@ -147,27 +147,6 @@ def save_screenshot(frame, voice):
     voice.say("Screenshot saved.")
 
 
-class Tee:
-    """Writes everything the coach prints to the screen and to a log file."""
-
-    def __init__(self, stream, path):
-        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        self.stream = stream
-        self.file = open(path, "w", encoding="utf-8")
-
-    def write(self, text):
-        self.stream.write(text)
-        try:
-            self.file.write(text)
-            self.file.flush()
-        except (OSError, ValueError):
-            pass
-        return len(text)
-
-    def flush(self):
-        self.stream.flush()
-
-
 def start_update_check():
     """Look for a newer version on GitHub in the background. It only prints one line."""
     from vcoach import updater
@@ -182,8 +161,11 @@ def start_update_check():
 
 
 def run_live(cfg, args):
-    sys.stdout = Tee(sys.stdout, os.path.join("logs", "coach_log.txt"))
-    sys.stderr = sys.stdout   # Errors go to the same log.
+    from vcoach.player_log import LogFiles
+
+    # coach_log.txt: what you said, what the coach said, marks and replays. debug_log.txt: everything.
+    sys.stdout = LogFiles(sys.stdout, os.path.join("logs", "debug_log.txt"), os.path.join("logs", "coach_log.txt"))
+    sys.stderr = sys.stdout   # Errors go to the debug log.
     print(f"Coach started {time.strftime('%Y-%m-%d %H:%M:%S')}")
     if cfg.get("update_check", True):
         start_update_check()

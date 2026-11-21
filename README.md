@@ -38,7 +38,11 @@ The Control Panel is a local website for all setup and use. Double-click **Valor
 | Reports | Read the report for each match. |
 | Help | Read the quick start guide. |
 
-**Start coach** and **Stop coach** at the top run the coach from the panel. **Coach log** shows what the coach does and says. **Stop coach** stops it cleanly, so it saves the match report.
+**Start coach** and **Stop coach** at the top run the coach from the panel. **Coach log** shows what you said, what the coach said, and your marks and replays. Tick **Debug** in it to see every line. **Stop coach** stops it cleanly, so it saves the match report.
+
+The coach writes 2 logs in the `logs` folder:
+- `coach_log.txt`: your view, with the time of day. What you said, what the coach said, marks, replays and slow motion replays, and the round results.
+- `debug_log.txt`: every line, for finding problems (shots, weapon changes, timing, errors). Send this one when you ask for help.
 
 ## Settings files
 

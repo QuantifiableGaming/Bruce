@@ -88,7 +88,7 @@ Coaching questions get an answer between rounds. If you ask during a round, the 
 | A red or yellow item on the Home page | Click the button next to it. |
 | No sound | Settings > Coach voice > **Hear it**. Check that Windows sound goes to your headset. |
 | A new Windows voice is not in the list | Click **Refresh voice list**. Some newer "Natural" Windows voices do not work with the coach. |
-| The coach never speaks after a round | The coach gets round results from the score at the top of the screen. Check the Coach log for `Round` lines. If there are none, record a match (see the next row). |
+| The coach never speaks after a round | The coach gets round results from the score at the top of the screen. Check `logs\debug_log.txt` for `Round` lines. If there are none, record a match (see the next row). |
 | The coach misses rounds or reads wrong numbers | Settings > Troubleshooting: turn on **Record the next match**. Play one match and click **Stop coach**. Open the newest folder in `recordings` and read `summary.txt`. |
 | No report after a match | The coach saves a report only when it detects rounds. Fix the round banner first (see the row above). |
 | "Bruce" hears the wrong words | Settings > Voice commands > Voice model: choose **Large**. Then click **Download** on the Home page. |

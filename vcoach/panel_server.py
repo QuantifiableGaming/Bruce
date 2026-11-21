@@ -165,9 +165,14 @@ class Task:
     stopped_by_user = False
 
     def info(self, since=0):
+        from .player_log import player_line
+
+        lines = self.lines[since:]
         return {"id": self.id, "args": self.args, "running": self.running, "code": self.code,
                 "stopped_by_user": self.stopped_by_user,
-                "lines": self.lines[since:], "count": len(self.lines)}
+                "lines": lines, "count": len(self.lines),
+                # The player's view for the Coach log box. "Debug" in the panel shows all lines.
+                "player_lines": [p for p in (player_line(x) for x in lines) if p]}
 
 
 class PanelServer(EditorServer):
