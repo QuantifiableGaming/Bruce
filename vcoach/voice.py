@@ -1,5 +1,6 @@
 import queue
 import threading
+import time
 
 
 def _sapi_rate(wpm):
@@ -143,9 +144,11 @@ class Voice:
                     if backend is not None:
                         self._apply(backend)
                     continue
-                gen, item = item
+                gen, item, queued = item if len(item) == 3 else (*item, None)
                 if gen != self.gen:
                     continue           # stop() was called after this line was queued
+                if queued is not None and time.monotonic() - queued > 1.0:
+                    print(f"[timing] This line waited {time.monotonic() - queued:.1f} s for the lines before it.")
                 cut = lambda: self.gen != gen  # noqa: E731
                 self.speaking = True
                 if self._speak_eleven(item, cut):
@@ -184,7 +187,9 @@ class Voice:
         from .eleven import ElevenError, play_pcm
 
         try:
+            start = time.monotonic()
             audio = self.eleven.audio(text, self.eleven.voice_for(self.personality), self.rate)
+            print(f"[timing] ElevenLabs voice: {time.monotonic() - start:.1f} s for {len(text.split())} words.")
             if not cut():
                 play_pcm(audio, cut=cut)
             return True
@@ -222,7 +227,7 @@ class Voice:
             return
         print(f"[coach] {text}" + (" (muted)" if self.muted else ""))
         if not self.silent and not self.muted:
-            self.q.put((self.gen, spoken_form(text)))
+            self.q.put((self.gen, spoken_form(text), time.monotonic()))
 
     def set_muted(self, muted):
         self.muted = muted

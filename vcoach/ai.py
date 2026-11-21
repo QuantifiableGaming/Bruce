@@ -315,18 +315,26 @@ class AIVoiceWriter:
         while True:
             queued_at, system, user, fallback, on_done, max_words = self.jobs.get()
             text = None
-            if time.monotonic() - queued_at < self.max_wait:
+            waited = time.monotonic() - queued_at          # Time in the queue behind other AI lines.
+            why = "too long in the queue"
+            if waited < self.max_wait:
                 try:
                     text = clean_line(self.client.complete(system, user), max_words)
                     self.last_error = None
+                    why = "empty reply" if not text else "too slow"
                 except Exception as exc:
                     self.last_error = str(exc)
+                    why = "error"
                     print(f"[ai] {exc}  (using the scripted line)")
-            if text and time.monotonic() - queued_at <= self.max_wait:
+            total = time.monotonic() - queued_at
+            if text and total <= self.max_wait:
                 self.stats["ai"] += 1
+                print(f"[timing] AI line: {total:.1f} s ({waited:.1f} s of it in the queue).")
                 on_done(text, True)
             else:
                 self.stats["fallback"] += 1
+                # 21 Nov: a silent fallback after a long wait looked like a slow coach.
+                print(f"[timing] AI gave no line after {total:.1f} s ({why}). The scripted line plays.")
                 on_done(fallback, False)
 
 
