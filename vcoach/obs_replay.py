@@ -187,9 +187,15 @@ class ObsReplay:
         while time.monotonic() < end:
             status = c.get_media_input_status(self.media)
             length = _field(status, "media_duration", "mediaDuration")
-            if _field(status, "media_state", "mediaState") == PLAYING and length:
+            # 21 Nov: OBS said PLAYING before it knew the length (-1), and the jump to a negative
+            # time failed with "mediaCursor is below the minimum". Wait for a real length.
+            if _field(status, "media_state", "mediaState") == PLAYING and isinstance(length, (int, float)) and length > 1000:
                 part_ms = length * min(1.0, max(0.05, self.slow_part))
-                c.set_media_input_cursor(self.media, int(length - part_ms))
+                try:
+                    c.set_media_input_cursor(self.media, max(0, int(length - part_ms)))
+                except Exception as exc:
+                    self.log(f"[replay] OBS did not jump in the clip: {exc}")
+                    return None
                 return part_ms / 1000.0
             time.sleep(0.1)
         return None

@@ -123,6 +123,9 @@ def parse(text, personalities):
     if _has(t, ["slow mo", "slowmo", "slow-mo", "slow motion", "slow mode", "slow more", "slo mo", "slow it down",
                 "slow that down", "slow down that", "slow down the replay", "half speed"]):
         return ("slowmo", None)
+    # 21 Nov: "slow mo" was heard as "slow" and "slight know". Only as the whole command.
+    if t.strip() in {"slow", "slight know", "slow no", "slow mow", "slow moe", "so mo", "low mo", "slow know"}:
+        return ("slowmo", None)
     if _has(t, ["replay that", "replay it", "replay this", "instant replay", "run it back", "run that back",
                 "show the replay", "play it back", "replay"]):
         return ("replay", None)
