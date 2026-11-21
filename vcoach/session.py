@@ -281,7 +281,8 @@ class Session:
         from .analysis import Analyst
 
         ai_cfg = cfg.get("ai", {}) or {}
-        self.analyst = Analyst(self.ai.client, float(ai_cfg.get("analysis_timeout_s", 90)))
+        self.analyst = Analyst(getattr(self, "review_client", None) or self.ai.client,
+                               float(ai_cfg.get("analysis_timeout_s", 90)))
         if self.ai.enabled and self.ai.kinds == set():
             print(f"AI match review on: {self.ai.client.provider} ({self.ai.client.model}). No spoken AI lines.")
         elif self.ai.enabled:
@@ -640,6 +641,10 @@ class Session:
     def _make_ai(self):
         ai_cfg = self.cfg.get("ai", {}) or {}
         client = AIClient(ai_cfg, load_secrets(ai_cfg.get("secrets_file", "secrets.yaml")))
+        self.review_client = client                   # The full model writes the match review.
+        if client.enabled and client.for_live_lines(ai_cfg) is not client:
+            client = client.for_live_lines(ai_cfg)    # A faster model for the spoken lines (21 Nov).
+            print(f"[ai] Spoken lines use {client.model}. The match review uses {self.review_client.model}.")
         kinds = None
         use_for = ai_cfg.get("use_for")
         from .ai import DEFAULTS

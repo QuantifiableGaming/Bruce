@@ -184,14 +184,14 @@ class Voice:
         """Speak with ElevenLabs. Return False if the Windows voice must speak the line."""
         if self.eleven is None:
             return False
-        from .eleven import ElevenError, play_pcm
+        from .eleven import ElevenError
 
         try:
-            start = time.monotonic()
-            audio = self.eleven.audio(text, self.eleven.voice_for(self.personality), self.rate)
-            print(f"[timing] ElevenLabs voice: {time.monotonic() - start:.1f} s for {len(text.split())} words.")
-            if not cut():
-                play_pcm(audio, cut=cut)
+            got = self.eleven.speak(text, self.eleven.voice_for(self.personality), self.rate, cut=cut)
+            if got["cached"]:
+                print(f"[timing] ElevenLabs voice: from the cache, {len(text.split())} words.")
+            else:
+                print(f"[timing] ElevenLabs voice: first sound after {got['first']:.1f} s ({len(text.split())} words).")
             return True
         except ElevenError as exc:
             print(f"[voice] ERROR: {exc}")

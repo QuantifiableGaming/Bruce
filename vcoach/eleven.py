@@ -114,12 +114,15 @@ class ElevenVoice:
             if os.path.exists(path):
                 with open(path, "rb") as f:
                     return f.read()
-        body = {"text": text, "model_id": self.model,
-                "voice_settings": {"stability": 0.5, "similarity_boost": 0.75, "speed": speed}}
-        data = _request(f"{API}/text-to-speech/{voice_id}?output_format=pcm_{SAMPLE_RATE}",
-                        self.key, body, timeout=self.timeout)
-        if len(data) < 200:
-            raise ElevenError("ElevenLabs sent no audio.")
+        return self._fetch(text, voice_id, speed, path)
+
+    def _cache_path(self, text, voice_id, speed):
+        if not self.cache_dir:
+            return None
+        tag = hashlib.sha1(f"{voice_id}|{self.model}|{speed}|{text}".encode("utf-8")).hexdigest()[:20]
+        return os.path.join(self.cache_dir, f"{tag}.pcm")
+
+    def _save(self, path, data):
         if path:
             try:
                 os.makedirs(self.cache_dir, exist_ok=True)
@@ -127,7 +130,99 @@ class ElevenVoice:
                     f.write(data)
             except OSError:
                 pass
+
+    def speak(self, text, voice_id, rate=180, cut=lambda: False, open_stream=None):
+        """Play a line and return {"first": seconds to the first sound, "cached": bool}.
+        A new line streams: it starts to play when the first audio arrives, not when all of it
+        has arrived (21 Nov: about 1 s less for each line). A line said before plays from the cache."""
+        import time
+
+        if not voice_id:
+            raise ElevenError("No ElevenLabs voice is chosen. Choose one in the Control Panel.", fatal=True)
+        speed = speed_from_rate(rate)
+        path = self._cache_path(text, voice_id, speed)
+        if path and os.path.exists(path):
+            with open(path, "rb") as f:
+                data = f.read()
+            if open_stream is None:
+                play_pcm(data, cut=cut)
+            else:
+                _play_into(open_stream(), data, cut)
+            return {"first": 0.0, "cached": True}
+        from .fastnet import NetError, request
+
+        start = time.monotonic()
+        body = {"text": text, "model_id": self.model,
+                "voice_settings": {"stability": 0.5, "similarity_boost": 0.75, "speed": speed}}
+        headers = {"xi-api-key": self.key, "Content-Type": "application/json", "User-Agent": "ValorantCoach/1.0"}
+        try:
+            resp = request(f"{API}/text-to-speech/{voice_id}/stream?output_format=pcm_{SAMPLE_RATE}",
+                           json.dumps(body).encode("utf-8"), headers, self.timeout)
+        except NetError as exc:
+            raise ElevenError(f"ElevenLabs network problem: {exc}") from None
+        if resp.status >= 400:
+            detail = resp.read().decode("utf-8", errors="replace")[:300]
+            fatal = resp.status in (401, 402, 403) or "quota" in detail.lower()
+            raise ElevenError(f"ElevenLabs HTTP {resp.status}: {_explain(resp.status, detail)}", fatal)
+        out = None
+        got, first, rest = [], None, b""
+        try:
+            while True:
+                if cut():
+                    resp.close()        # The rest is not needed. The next line opens a new connection.
+                    break
+                chunk = resp.read1(4096) if hasattr(resp, "read1") else resp.read(4096)
+                if not chunk:
+                    break
+                got.append(chunk)
+                if out is None:
+                    out = (open_stream or _open_stream)()
+                    first = time.monotonic() - start
+                data = rest + chunk
+                even = len(data) // 2 * 2       # 16-bit samples: never split a sample.
+                out.write(data[:even])
+                rest = data[even:]
+        except (OSError, TimeoutError) as exc:
+            if out is None:
+                raise ElevenError(f"ElevenLabs network problem: {exc}") from None
+        finally:
+            if out is not None:
+                try:
+                    out.stop()              # Waits until the audio has played.
+                    out.close()
+                except Exception:
+                    pass
+        data = b"".join(got)
+        if first is None or len(data) < 200:
+            raise ElevenError("ElevenLabs sent no audio.")
+        if not cut():
+            self._save(path, data)
+        return {"first": first, "cached": False}
+
+    def _fetch(self, text, voice_id, speed, path):
+        body = {"text": text, "model_id": self.model,
+                "voice_settings": {"stability": 0.5, "similarity_boost": 0.75, "speed": speed}}
+        data = _request(f"{API}/text-to-speech/{voice_id}?output_format=pcm_{SAMPLE_RATE}",
+                        self.key, body, timeout=self.timeout)
+        if len(data) < 200:
+            raise ElevenError("ElevenLabs sent no audio.")
+        self._save(path, data)
         return data
+
+
+def _open_stream():
+    import sounddevice as sd
+
+    out = sd.RawOutputStream(samplerate=SAMPLE_RATE, channels=1, dtype="int16")
+    out.start()
+    return out
+
+
+def _play_into(out, data, cut):
+    """Write cached audio to an open stream (tests give their own stream)."""
+    out.write(data[: len(data) // 2 * 2])
+    out.stop()
+    out.close()
 
 
 def play_pcm(data, sample_rate=SAMPLE_RATE, cut=lambda: False):

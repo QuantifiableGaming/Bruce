@@ -49,7 +49,7 @@ checks:
     enabled: false             # Test version. In tests on real games, the head height was right in about 7 of 10 fights. Set true to try it.
     min_offset_px: -60         # A head further below the crosshair than this is not used (almost always a false outline).
     max_offset_px: 200         # A head further above the crosshair than this is not used (the top HUD or the map).
-    min_aspect: 1.15           # Only tall outlines (height / width) count. Teammate markers and dead bodies are wider.
+    min_aspect: 1.2            # Only tall outlines (height / width) count. Teammate markers and dead bodies are wider.
     min_share: 0.5             # The outline must be at least this part of all highlight colour near the crosshair (busy scenes do not count).
     tolerance_px_at_1080: 18   # A head this close to the crosshair (vertically) counts as good.
     min_samples: 2             # Fights needed in a round before the check gives a tip.
@@ -137,6 +137,7 @@ ai:
   glm_model: z-ai/glm-5.3-flash:free  # Free on OpenRouter. Another free model ID (ending in :free) also works.
   glm_timeout_s: 8             # Free models are slower. The coach waits this long for GLM.
   groq_model: openai/gpt-oss-120b  # Free on Groq (console.groq.com). Any model on Groq's free plan works.
+  groq_live_model: openai/gpt-oss-20b  # A faster model for the spoken lines. Empty: use groq_model for them too.
   custom_base_url: http://localhost:11434/v1  # Custom AI: the address up to /v1. Ollama on this PC is the default.
   custom_model: llama3.2       # Custom AI: the model name that the service uses.
   custom_timeout_s: 8

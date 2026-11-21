@@ -28,8 +28,9 @@ DEFAULTS = {
     "glm": {"model": "z-ai/glm-5.3-flash:free", "base_url": "https://openrouter.ai/api",
             "env": "OPENROUTER_API_KEY", "secret": "openrouter_api_key", "timeout": 8, "review_only": True},
     # Free and fast: fast enough for the spoken lines between rounds. Free key from console.groq.com.
+    # live_model: a faster model for the spoken lines. The model above still writes the match review.
     "groq": {"model": "openai/gpt-oss-120b", "base_url": "https://api.groq.com/openai",
-             "env": "GROQ_API_KEY", "secret": "groq_api_key"},
+             "env": "GROQ_API_KEY", "secret": "groq_api_key", "live_model": "openai/gpt-oss-20b"},
     # Any service with the OpenAI chat format: Ollama on this PC, Google Gemini, Mistral, Cerebras...
     # custom_base_url is the address up to and with /v1, as the service's docs give it.
     "custom": {"model": "llama3.2", "base_url": "http://localhost:11434/v1", "path": "/chat/completions",
@@ -77,16 +78,23 @@ def _post(url, headers, body, timeout):
     data = json.dumps(body).encode("utf-8")
     # Cloudflare (in front of Groq and others) blocks Python's default "Python-urllib" agent
     # with HTTP 403, error code 1010. A User-Agent of our own fixes that.
-    headers = {"User-Agent": USER_AGENT, "Accept": "application/json", **headers}
-    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json", "Content-Type": "application/json",
+               **headers}
+    from .fastnet import NetError, request
+
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")[:400]
-        raise AIError(f"HTTP {exc.code}: {detail}") from None
-    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        resp = request(url, data, headers, timeout)   # The connection stays open for the next line.
+        raw = resp.read()
+    except NetError as exc:
         raise AIError(f"Network problem: {exc}") from None
+    except (TimeoutError, OSError) as exc:
+        raise AIError(f"Network problem: {exc}") from None
+    if resp.status >= 400:
+        raise AIError(f"HTTP {resp.status}: {raw.decode('utf-8', errors='replace')[:400]}")
+    try:
+        return json.loads(raw.decode("utf-8"))
+    except ValueError:
+        raise AIError(f"The answer was not JSON: {raw[:200]!r}") from None
 
 
 class AIClient:
@@ -124,6 +132,23 @@ class AIClient:
             return
         self.enabled = True
         self.reason = ""
+
+    def for_live_lines(self, ai_cfg=None):
+        """A copy that uses the faster live model for spoken lines, or this client when there is none.
+        groq_live_model in the config changes it. An empty value uses the main model."""
+        import copy
+
+        ai_cfg = ai_cfg or {}
+        d = DEFAULTS.get(self.provider) or {}
+        key = f"{self.provider}_live_model"
+        live = ai_cfg[key] if key in ai_cfg else d.get("live_model")
+        if not self.enabled or not live or live == self.model:
+            return self
+        c = copy.copy(self)
+        c.model = str(live)
+        c.use_reasoning_param = self.provider in ("chatgpt", "glm") or \
+            (self.provider == "groq" and "gpt-oss" in c.model)
+        return c
 
     def complete(self, system, user, timeout=None, max_tokens=None):
         if time.monotonic() < self.paused_until:
