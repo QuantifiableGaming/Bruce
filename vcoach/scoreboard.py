@@ -70,12 +70,46 @@ def find_my_row(frame):
     return y0 + a, y0 + b
 
 
+MAX_KDA = 50     # Kills, deaths or assists above this are a misread.
+
+
+def _split_kda(token):
+    """K/D/A from a token where the text reader saw a slash as "1" (or "1/"): "7117/8" is 7/17/8,
+    "9171/2" is 9/7/2, "6/614" is 6/6/4 (22 Nov). Returns (k, d, a) when exactly one split makes
+    sense, else None."""
+    seps = []                                   # (start, end) of each possible slash
+    for i, ch in enumerate(token):
+        if ch in "/1lI":
+            seps.append((i, i + 1))
+        if token[i:i + 2] in ("1/", "/1"):
+            seps.append((i, i + 2))
+    found = {}
+    for a in range(len(seps)):
+        for b in range(a + 1, len(seps)):
+            (s1, e1), (s2, e2) = seps[a], seps[b]
+            if s2 < e1:
+                continue
+            parts = (token[:s1], token[e1:s2], token[e2:])
+            if not all(p.isdigit() and (p == "0" or not p.startswith("0")) for p in parts):
+                continue
+            kda = tuple(int(p) for p in parts)
+            if max(kda) > MAX_KDA:
+                continue
+            slashes = token[s1:e1].count("/") + token[s2:e2].count("/")
+            found[kda] = max(found.get(kda, 0), slashes)
+    if not found:
+        return None
+    best = max(found.values())
+    top = [k for k, v in found.items() if v == best]
+    return top[0] if len(top) == 1 else None    # Two answers: read the scoreboard again instead.
+
+
 def parse(text):
     """Numbers from the right part of your line: '178 9 / 18 / 6 3 1 0 3'."""
     text = (text or "").replace("|", "/").replace("\\", "/")
     m = re.search(r"(\d{1,3})\s*/\s*(\d{1,3})\s*/\s*(\d{1,3})", text)
     if not m:
-        return None
+        return _parse_misread(text)
     before = re.findall(r"\d+", text[:m.start()])
     after = re.findall(r"\d+", text[m.end():])
     if not before:
@@ -85,6 +119,23 @@ def parse(text):
     for key, value in zip(("trades", "first_bloods", "plants", "defuses"), after):
         out[key] = int(value)
     if not 0 <= out["score"] <= 999 or max(out["kills"], out["deaths"], out["assists"]) > 99:
+        return None
+    return out
+
+
+def _parse_misread(text):
+    """parse() for a line where a slash was read as a "1": '161 7117/8 1 3 0 0'."""
+    tokens = re.sub(r"\s*/\s*", "/", text).split()
+    if len(tokens) < 2 or not tokens[0].isdigit():
+        return None
+    kda = _split_kda(tokens[1])
+    if kda is None:
+        return None
+    out = {"score": int(tokens[0]), "kills": kda[0], "deaths": kda[1], "assists": kda[2]}
+    after = [t for t in tokens[2:] if t.isdigit()]
+    for key, value in zip(("trades", "first_bloods", "plants", "defuses"), after):
+        out[key] = int(value)
+    if not 0 <= out["score"] <= 999:
         return None
     return out
 
