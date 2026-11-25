@@ -45,6 +45,10 @@ banner_keywords:
   match_end: ["VICTORY", "DEFEAT", "DRAW"]
 
 checks:
+  advantage:                   # The death review: did you have an advantage when you died? (H3ners, "This is Why You Keep Dying")
+    enabled: true
+    window_s: 5                # Look at the last 5 seconds before each death.
+    use_blind_marks: false     # Test: the white mark over a blinded enemy's head. Off until it is tested in real matches.
   crosshair:
     enabled: false             # Test version. In tests on real games, the head height was right in about 7 of 10 fights. Set true to try it.
     min_offset_px: -60         # A head further below the crosshair than this is not used (almost always a false outline).
@@ -103,6 +107,7 @@ keys:                          # Your movement keys and fire button, for the mov
   fire: mouse_left             # mouse_left or mouse_right
   switch: ["1", "2", "3", "4", q, e, c, x]  # Weapon and ability keys. An ammo change right after one is a weapon change, not shots.
   switch_on_scroll: true       # The mouse wheel also changes weapon.
+  abilities: {c: c, q: q, e: e, x: x}   # Your ability keys, by slot. The death review uses them to see your flash or recon ability.
 
 coach:
   personality: calm            # calm, hype, tough, mate, sassy, savage, random or mix. Run "python main.py personalities" to list them.

@@ -57,7 +57,7 @@ class Report:
         heads = ["Round", "Result", "Deaths"]
         if self.show_crosshair:
             heads += ["Fights", "Crosshair median (px, + = low)"]
-        heads += ["Bursts", "Moving", "Counter-strafes", "Long sprays", "Bad reloads", "Coach said"]
+        heads += ["Bursts", "Moving", "Counter-strafes", "Long sprays", "Bad reloads", "Before you died", "Coach said"]
         lines += ["| " + " | ".join(heads) + " |", "|" + "---|" * len(heads)]
         for n, won, credit, s, msg in self.rows:
             res = ("Won" if won else "Lost") + (f" ({credit})" if credit else "")
@@ -65,7 +65,7 @@ class Report:
             if self.show_crosshair:
                 cells += [s["fights"], "" if s["crosshair_median"] is None else s["crosshair_median"]]
             stops = f'{s.get("counter_stops", 0)} of {s["stops"]}' if s.get("stops") else ""
-            cells += [s["bursts"], s["moving_bursts"], stops, s["long_sprays"], s["bad_reloads"], msg or ""]
+            cells += [s["bursts"], s["moving_bursts"], stops, s["long_sprays"], s["bad_reloads"], s.get("advantage", ""), msg or ""]
             lines.append("| " + " | ".join(str(c) for c in cells) + " |")
         if not self.show_crosshair:
             lines += ["", "The crosshair check is off, so the report has no crosshair columns. "
@@ -307,6 +307,7 @@ class Session:
             motion = None
         enemy = self.detector.detect(frame) if self.crosshair_on else NO_ENEMY
         self.analyzer.on_frame(t, motion, enemy)
+        self.analyzer.on_image(t, frame)
         if self.log:
             ho = "" if enemy["head_offset"] is None else round(enemy["head_offset"], 1)
             self.log.writerow([round(t, 3), "frame", "" if motion is None else round(motion, 3), enemy["pixels"], ho, "", "", ""])
@@ -449,6 +450,11 @@ class Session:
                                  "is not the player's. Do not praise the player for it.")
                     else:
                         extra = f"Highlight: {credit}." if credit else None
+                    from .advantage import ai_note
+
+                    review = ai_note(stats.death_reviews)
+                    if review:
+                        extra = f"{extra} {review}" if extra else review
                     report = self.report
                     self._speak(kind, msg[1], stats=stats, issue=self.coach.last_issue, extra=extra,
                                 after=lambda text, r=row, rep=report: rep.set_message(r, text))

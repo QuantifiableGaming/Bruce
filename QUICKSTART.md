@@ -41,7 +41,7 @@ Double-click **Valorant Coach Setup**. The Control Panel opens in your web brows
 
 1. Double-click **Valorant Coach Setup**.
 2. Click **Start coach** at the top of the panel.
-3. Start Valorant and play. The coach speaks in agent select, between rounds, and gives a debrief after the match.
+3. Start Valorant and play. The coach speaks in agent select, between rounds, and gives a debrief after the match. After a round where you died, it tells you if you had an advantage (a flash or info) before the death.
 4. Click **Stop coach** when you finish. The coach saves a report after each match, and you can read it on the **Reports** page. Each report ends with **Clips to post**: your highlights with captions and hashtags. With an AI on, it also has a written match review.
 
 You can also double-click **Valorant Coach** to start the coach without the panel. To stop it, close its window.

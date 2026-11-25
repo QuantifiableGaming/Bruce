@@ -18,6 +18,7 @@ class RoundStats:
     stop_gaps_ms: list = field(default_factory=list)
     damage_times: list = field(default_factory=list)
     deaths: int = 0
+    death_reviews: list = field(default_factory=list)   # One line for each death: the advantages before it.
 
     def issues(self, c):
         """Return {issue: severity}. A severity of 1.0 or more means the check failed."""
@@ -51,6 +52,7 @@ class RoundStats:
     def summary(self):
         d = asdict(self)
         d.pop("damage_times")
+        d["advantage"] = " ".join(d.pop("death_reviews"))
         gaps = d.pop("stop_gaps_ms")
         d["stop_gap_ms"] = round(median(gaps)) if gaps else None
         d["crosshair_median"] = round(median(self.crosshair_offsets), 1) if self.crosshair_offsets else None
@@ -133,6 +135,14 @@ class Analyzer:
         self.round_closed_t = -1e9
         self.round = RoundStats()
         self.rounds = []
+        from .advantage import DeathReview
+        self.death_review = DeathReview({"checks": self.c, "enemy_highlight": cfg.get("enemy_highlight", {}),
+                                         "regions": cfg.get("regions", {})})
+
+    def on_image(self, t, frame):
+        """Read the frame for the death review (a flash, a reveal, a blinded screen)."""
+        if self.health.alive and not self._between_rounds(t):
+            self.death_review.on_frame(t, frame)
 
     def on_frame(self, t, motion, enemy):
         self.motion.append((t, motion))
@@ -327,7 +337,7 @@ class Analyzer:
             # "SWITCH PLAYER" shows: you are dead, and the HUD shows a teammate's ammo and health.
             if self.health.alive and not self._between_rounds(t):
                 self.health.alive = False
-                self._died("SWITCH PLAYER shows")
+                self._died("SWITCH PLAYER shows", t)
                 self._ammo_events(t, self.ammo.flush())
             self.last_hud_ok_t = t
             ammo = health = None
@@ -339,7 +349,7 @@ class Analyzer:
                 if self._between_rounds(t):
                     self.health.alive = True   # A 0 between rounds is not a death in the next round.
                 else:
-                    self._died("health 0")
+                    self._died("health 0", t)
         self._check_death(t, ammo, health)
         if self.health.alive:
             self._ammo_events(t, self.ammo.update(t, ammo))
@@ -393,16 +403,30 @@ class Analyzer:
         if (t - self.hud_gone_t >= 1.2 and self.hud_gone_t - self.last_damage_t <= 3.0
                 and not self._between_rounds(t)):
             self.health.alive = False
-            self._died("the HUD went away after damage")
+            self._died("the HUD went away after damage", self.hud_gone_t)
             self._ammo_events(t, self.ammo.flush())
 
     round_no = None      # Set by the session, for the log line.
 
-    def _died(self, how):
-        """Count a death, with one log line (21 Nov: the player asked to see deaths in the log)."""
+    def _died(self, how, t=None):
+        """Count a death, with one log line (21 Nov: the player asked to see deaths in the log).
+
+        The line also has the death review: the advantages in the seconds before the death.
+        """
         self.round.deaths += 1
         where = f" (round {self.round_no})" if self.round_no else ""
-        print(f"[death] You died{where}. Seen by: {how}.")
+        note = ""
+        if t is not None:
+            from .advantage import describe
+
+            window = float(self.death_review.s["window_s"])
+            slots = self.inputs.abilities_used(t - window, t) if self._keys_on() and hasattr(self.inputs, "abilities_used") else set()
+            agent = self.match.agent[0] if getattr(self.match, "agent", None) else None
+            note = describe(self.death_review.review(t, agent, slots))
+            if note:
+                self.round.death_reviews.append(note)
+                note = " " + note
+        print(f"[death] You died{where}.{note} Seen by: {how}.")
 
     def _close_round(self, t):
         self._ammo_events(t, self.ammo.flush())

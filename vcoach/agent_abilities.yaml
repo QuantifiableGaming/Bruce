@@ -1,0 +1,19 @@
+# Abilities that give an advantage, for the death review.
+# flash: abilities that blind or near-sight an enemy.
+# info: abilities that find or reveal enemies (a drone, a dart, a reveal).
+# The slot is the ability key in Valorant's default layout: c, q, e or x.
+# If your keys are different, change keys.abilities in config.yaml, not this file.
+# Agents that are not in this list have no flash or info ability for the review.
+# You can change this file. Check it after a Valorant update that changes an agent.
+
+phoenix: {flash: [q]}
+breach: {flash: [q]}
+skye: {flash: [e], info: [q]}
+kayo: {flash: [q], info: [e]}
+yoru: {flash: [q]}
+reyna: {flash: [c]}
+omen: {flash: [q]}
+gekko: {flash: [e]}
+fade: {flash: [c], info: [c, e]}
+sova: {info: [c, e]}
+cypher: {info: [e]}

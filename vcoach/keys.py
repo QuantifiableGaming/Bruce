@@ -30,6 +30,7 @@ class InputLog:
         self.fire_spans = deque()    # (press, release) of the fire button. Release None: held now.
         self.reloads = deque()       # Reload key presses.
         self.switches = deque()      # Weapon and ability key presses (1, 2, 3, 4, Q, E, C, X, mouse wheel).
+        self.abilities = deque()     # (time, slot) for the ability keys: slot is c, q, e or x (the death review).
         self.active = False          # True after the first key or click. Replays never set it.
 
     # --- Input from the listener (or from tests) ---
@@ -42,8 +43,10 @@ class InputLog:
                 self.reloads.append(t)
                 self._trim(t)
                 return
-            if name == "switch":
+            if name == "switch" or name.startswith("ability_"):
                 self.switches.append(t)
+                if name.startswith("ability_"):
+                    self.abilities.append((t, name[len("ability_"):]))
                 self._trim(t)
                 return
             if name == "fire":
@@ -74,6 +77,8 @@ class InputLog:
             while q and q[0] is not None and (q[0][1] if isinstance(q[0], tuple) else q[0]) is not None \
                     and t - (q[0][1] if isinstance(q[0], tuple) else q[0]) > self.keep_s:
                 q.popleft()
+        while self.abilities and t - self.abilities[0][0] > self.keep_s:
+            self.abilities.popleft()
 
     # --- Questions from the analyzer ---
 
@@ -94,6 +99,11 @@ class InputLog:
         """True when a weapon or ability key (or the mouse wheel) was used in [start, end]."""
         with self.lock:
             return any(start <= x <= end for x in self.switches)
+
+    def abilities_used(self, start, end):
+        """The ability slots (c, q, e, x) pressed in [start, end]."""
+        with self.lock:
+            return {slot for x, slot in self.abilities if start <= x <= end}
 
     def reload_pressed(self, start, end):
         with self.lock:
@@ -226,6 +236,9 @@ def start_listener(cfg, log):
     fire_button = _key_name(kc.get("fire", "mouse_left"))
     # Keys that change what is in your hands: weapons 1-4 and the abilities Q, E, C, X
     # (Chamber's Headhunter and Tour de Force, for example). The coach only notes the time.
+    # The ability keys also keep their slot (C, Q, E, X), so the death review can see a flash or a recon ability.
+    for slot, k in (kc.get("abilities") or {"c": "c", "q": "q", "e": "e", "x": "x"}).items():
+        names.setdefault(_key_name(k), "ability_" + _key_name(slot))
     for k in kc.get("switch", ["1", "2", "3", "4", "q", "e", "c", "x"]) or []:
         names.setdefault(_key_name(k), "switch")
 

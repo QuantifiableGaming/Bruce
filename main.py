@@ -175,7 +175,7 @@ def run_live(cfg, args):
     start_hotkey(cfg["coach"]["mute_hotkey"], voice.toggle_mute)
     from vcoach.keys import InputLog, start_listener as start_key_listener
 
-    inputs = InputLog()
+    inputs = InputLog(keep_s=10.0)   # 10 s: the death review looks 5 s back from the death.
     key_listeners = start_key_listener(cfg, inputs)
     from vcoach.obs_replay import from_config as obs_from_config
 
