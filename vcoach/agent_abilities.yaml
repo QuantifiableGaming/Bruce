@@ -1,5 +1,5 @@
 # Abilities that give an advantage, for the death review. Source: valorant.fandom.com/wiki/Abilities (25 Nov 2026).
-# flash: abilities that blind or near-sight an enemy.
+# flash: abilities that flash (blind) or nearsight an enemy.
 # info: abilities that find or reveal enemies (a drone, a dart, a reveal).
 # The slot is the ability key in Valorant's default layout: c, q, e or x.
 # If your keys are different, change keys.abilities in config.yaml, not this file.
@@ -8,7 +8,7 @@
 
 phoenix: {flash: [q]}
 breach: {flash: [q]}
-skye: {flash: [e], info: [q, x]}       # x: Seekers find enemies
+skye: {flash: [e, x], info: [q, x]}    # x: Seekers find and nearsight enemies
 kayo: {flash: [q], info: [e]}
 yoru: {flash: [q]}
 reyna: {flash: [c]}
