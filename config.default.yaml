@@ -49,6 +49,7 @@ checks:
     enabled: true
     window_s: 5                # Look at the last 5 seconds before each death.
     use_blind_marks: false     # Test: the white mark over a blinded enemy's head. Off until it is tested in real matches.
+    use_reveals: false         # Test: magenta revealed enemies on the screen. Off: smokes and gun skins gave false reads.
   crosshair:
     enabled: false             # Test version. In tests on real games, the head height was right in about 7 of 10 fights. Set true to try it.
     min_offset_px: -60         # A head further below the crosshair than this is not used (almost always a false outline).

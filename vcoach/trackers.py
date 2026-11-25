@@ -540,16 +540,20 @@ class MatchTracker:
         return events
 
     def on_agent(self, t, text):
-        """Text from the agent panel. Report an agent after it stays selected for 8 seconds."""
+        """Text from the agent panel. Report an agent after it stays selected for 2 seconds.
+
+        25 Nov 2026: the new agent select shows your locked agent for only about 4 seconds, so the
+        old 8 second wait missed it. A later read can still change the agent (the death review uses it).
+        """
         events = self.poll(t)
-        if t - self.last_agent_select_t > 150 or self.agent_said:
+        if t - self.last_agent_select_t > 150:
             return events
         name, role = find_agent(text)
         if not name:
             return events
         if not self.agent or self.agent[0] != name:
             self.agent = (name, role, t)
-        elif t - self.agent[2] >= 8.0:
+        elif not self.agent_said and t - self.agent[2] >= 2.0:
             self.agent_said = True
             events.append(("agent", {"agent": name, "role": role}))
         return events

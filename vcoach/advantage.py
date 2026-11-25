@@ -37,6 +37,7 @@ DEFAULTS = {
     "window_s": 5.0,          # Look at the last 5 seconds before each death.
     "min_frames": 3,          # A sign must show in 3 reads or more, so one bad read does not count.
     "use_blind_marks": False, # The blind mark gave false reads on the Range walls. Test it in real matches first.
+    "use_reveals": False,     # 25 Nov match: smokes (Clove, Omen), purple gun skins and ability icons look like a reveal.
     "mark_frames": 5,
 }
 
@@ -73,14 +74,14 @@ class AdvantageReader:
         self.region = regions.get("enemy_search") or [0.0, 0.11, 1.0, 0.84]
         self.ignore = regions.get("gun_ignore")
 
-    def read(self, frame, marks=False):
+    def read(self, frame, marks=False, reveals=True):
         h, w = frame.shape[:2]
         small = cv2.resize(frame, (w // 4, h // 4), interpolation=cv2.INTER_AREA)
         sh, sw = small.shape[:2]
         return {
             "blinded": self._blinded(small),
             "blind_marks": self._blind_marks(frame) if marks else 0,
-            "revealed": self._revealed(small, sw, sh),
+            "revealed": self._revealed(small, sw, sh) if reveals else 0,
         }
 
     @staticmethod
@@ -155,7 +156,7 @@ class DeathReview:
         if not self.enabled or t < self.next_t:
             return
         self.next_t = t + float(self.s["sample_s"])
-        self.reads.append((t, self.reader.read(frame, bool(self.s["use_blind_marks"]))))
+        self.reads.append((t, self.reader.read(frame, bool(self.s["use_blind_marks"]), bool(self.s["use_reveals"]))))
         while self.reads and t - self.reads[0][0] > float(self.s["window_s"]) + 3.0:
             self.reads.popleft()
 

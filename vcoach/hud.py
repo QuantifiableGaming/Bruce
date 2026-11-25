@@ -7,6 +7,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import cv2
+import numpy as np
 
 from .digits import DigitReader, HUD_DIGIT_FRACTION, SCORE_DIGIT_FRACTION
 from .util import crop
@@ -60,7 +61,8 @@ FIXED_REGIONS = {
     "score_left": [0.4167, 0.0278, 0.0250, 0.0333],   # Your team's round score, left of the timer.
     "score_right": [0.5583, 0.0278, 0.0250, 0.0333],  # The enemy team's round score.
     "top_left": [0.0, 0.085, 0.42, 0.12],             # Map and mode in agent select. VICTORY or DEFEAT after a match.
-    "agent_panel": [0.72, 0.09, 0.18, 0.11],          # Role and agent name in agent select.
+    "agent_panel": [0.72, 0.09, 0.18, 0.11],          # Role and agent name in agent select (old layout).
+    "agent_cards": [0.30, 0.885, 0.40, 0.05],         # The player cards in agent select (new layout, 25 Nov 2026).
     "result": [0.30, 0.30, 0.40, 0.32],               # The big VICTORY or DEFEAT (and SURRENDERED) at the match end.
 }
 
@@ -295,13 +297,41 @@ class HudReader:
         return self._words(binary)
 
     def agent_panel(self, frame):
-        """Read the role and agent name in agent select."""
+        """Read your agent name in agent select.
+
+        25 Nov 2026: Valorant's new agent select has no panel at the top right. Each player has a card
+        at the bottom. Your card has a gold name ("Me (KAY/O)"), and your agent's name is on the line
+        under it. The old panel is still read when the new card is not found.
+        """
+        card = self.my_agent_card(frame)
+        if card:
+            return card
         img = crop(frame, self.regions["agent_panel"])
         if img.size == 0:
             return None
         gray = cv2.resize(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
         _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
         return self._words(binary)
+
+    def my_agent_card(self, frame):
+        """The agent line under your gold name on the agent select cards, or None."""
+        strip = crop(frame, self.regions["agent_cards"])
+        if strip.size == 0:
+            return None
+        h, w = strip.shape[:2]
+        names = strip[: h * 11 // 20]
+        hsv = cv2.cvtColor(names, cv2.COLOR_BGR2HSV)
+        gold = cv2.inRange(hsv, np.array((15, 90, 150)), np.array((35, 255, 255)))
+        cols = np.nonzero(gold.sum(axis=0) > 0)[0]
+        if len(cols) < max(6, w // 100):
+            return None                     # No gold name: not agent select, or a different layout.
+        cx = int(np.median(cols))
+        half = max(10, int(frame.shape[1] * 0.036))
+        line = strip[h * 11 // 20:, max(0, cx - half):min(w, cx + half)]
+        gray = cv2.resize(cv2.cvtColor(line, cv2.COLOR_BGR2GRAY), None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
+        _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        text = self._words(binary, psm=7)
+        return text.replace("/", "") if text else None
 
 
 class HudWorker:
