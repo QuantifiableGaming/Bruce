@@ -341,6 +341,10 @@ class Analyzer:
                 self._ammo_events(t, self.ammo.flush())
             self.last_hud_ok_t = t
             ammo = health = None
+        if (ammo is not None or health is not None) and self.death_review.blinded_near(t):
+            # 25 Nov: KAY/O's flash turned the health "100" peach on peach, and the reader saw 0 (a false death).
+            # A real death in this time still shows as "SWITCH PLAYER" or as the HUD going away.
+            ammo = health = None
         for kind, et in self.health.update(t, health):
             if kind == "damage":
                 self.round.damage_times.append(et)

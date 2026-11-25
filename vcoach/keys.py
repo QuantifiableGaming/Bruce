@@ -46,7 +46,10 @@ class InputLog:
             if name == "switch" or name.startswith("ability_"):
                 self.switches.append(t)
                 if name.startswith("ability_"):
-                    self.abilities.append((t, name[len("ability_"):]))
+                    slot = name[len("ability_"):]
+                    self.abilities.append((t, slot))
+                    # Debug log only: shows which key each agent's ability uses (25 Nov test of agent_abilities.yaml).
+                    print(f"[ability] {slot.upper()} pressed")
                 self._trim(t)
                 return
             if name == "fire":

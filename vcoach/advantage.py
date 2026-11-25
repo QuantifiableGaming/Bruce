@@ -183,6 +183,10 @@ class DeathReview:
             "reads": len(window),
         }
 
+    def blinded_near(self, t, before=1.5, after=0.3):
+        """True when the screen was flat and blinded a short time before t. The HUD numbers are then unreadable."""
+        return any(r["blinded"] for rt, r in self.reads if t - before <= rt <= t + after)
+
     def clear(self):
         self.reads.clear()
 
