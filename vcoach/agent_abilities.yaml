@@ -1,4 +1,4 @@
-# Abilities that give an advantage, for the death review.
+# Abilities that give an advantage, for the death review. Source: valorant.fandom.com/wiki/Abilities (25 Nov 2026).
 # flash: abilities that blind or near-sight an enemy.
 # info: abilities that find or reveal enemies (a drone, a dart, a reveal).
 # The slot is the ability key in Valorant's default layout: c, q, e or x.
@@ -8,12 +8,16 @@
 
 phoenix: {flash: [q]}
 breach: {flash: [q]}
-skye: {flash: [e], info: [q]}
+skye: {flash: [e], info: [q, x]}       # x: Seekers find enemies
 kayo: {flash: [q], info: [e]}
 yoru: {flash: [q]}
 reyna: {flash: [c]}
 omen: {flash: [q]}
 gekko: {flash: [e]}
-fade: {flash: [c], info: [c, e]}
+fade: {flash: [c], info: [c, e, x]}    # x: Nightfall reveals enemies
 sova: {info: [c, e]}
-cypher: {info: [e]}
+cypher: {info: [c, e, x]}              # c: Trapwire, e: Spycam, x: Neural Theft
+vyse: {flash: [e]}                     # Arc Rose (signature)
+tejo: {info: [c]}                      # Stealth Drone
+# No flash or info ability: Jett, Raze, Neon, Iso, Waylay, Brimstone, Viper, Astra, Harbor, Clove,
+# Sage, Killjoy, Chamber, Deadlock, Veto.
